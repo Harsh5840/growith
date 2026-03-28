@@ -1,0 +1,22 @@
+generator client {
+	provider = "prisma-client-js"
+}
+
+datasource db {
+	provider = "postgresql"
+	url      = env("DATABASE_URL")
+}
+
+model InvestorAuthUser {
+	id              String   @id @default(cuid())
+	email           String   @unique
+	fullName        String
+	passwordHash    String?
+	googleId        String?  @unique
+	profilePicture  String?
+	emailVerified   Boolean  @default(false)
+	isActive        Boolean  @default(true)
+	lastLoginAt     DateTime?
+	createdAt       DateTime @default(now())
+	updatedAt       DateTime @updatedAt
+}
