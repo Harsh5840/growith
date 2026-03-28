@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "description": "Growith Platform Backend - Phase 1",
   "scripts": {
+    "postinstall": "prisma generate",
     "build": "prisma generate && tsc -p tsconfig.build.json",
     "start": "node -r tsconfig-paths/register dist/src/server.js",
     "start:dev": "ts-node -r tsconfig-paths/register src/server.ts",
