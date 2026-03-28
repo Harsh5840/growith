@@ -1,4 +1,4 @@
-import { InvestorAuthUseCasePort } from '@core/ports/inbound/investor-auth.usecase.port';
+import { InvestorAuthUseCasePort } from '../../../../core/ports/inbound/investor-auth.usecase.port';
 import { LoginRequestDto } from '../dtos/auth.dto';
 import { AuthResponse } from '../models/auth-response.model';
 

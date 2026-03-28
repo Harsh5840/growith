@@ -8,13 +8,13 @@ import {
 	ResetPasswordRequestDto,
 	ValidateEmailRequestDto,
 } from '@modules/investor/application/dtos/auth.dto';
-import { RegisterInvestorUseCase } from '@modules/investor/application/use-cases/register-investor.usecase';
-import { LoginInvestorUseCase } from '@modules/investor/application/use-cases/login-investor.usecase';
-import { ValidateEmailUseCase } from '@modules/investor/application/use-cases/validate-email.usecase';
-import { GoogleAuthUseCase } from '@modules/investor/application/use-cases/google-auth.usecase';
-import { GetGoogleAuthUrlUseCase } from '@modules/investor/application/use-cases/get-google-auth-url.usecase';
-import { InvestorAuthService } from '@modules/investor/application/services/investor-auth.service';
-import { successResponse } from '@shared/http/api-response';
+import { RegisterInvestorUseCase } from '../../../modules/investor/application/use-cases/register-investor.usecase';
+import { LoginInvestorUseCase } from '../../../modules/investor/application/use-cases/login-investor.usecase';
+import { ValidateEmailUseCase } from '../../../modules/investor/application/use-cases/validate-email.usecase';
+import { GoogleAuthUseCase } from '../../../modules/investor/application/use-cases/google-auth.usecase';
+import { GetGoogleAuthUrlUseCase } from '../../../modules/investor/application/use-cases/get-google-auth-url.usecase';
+import { InvestorAuthService } from '../../../modules/investor/application/services/investor-auth.service';
+import { successResponse } from '../../../shared/http/api-response';
 import { AuthRequest } from '../../../types/auth-request';
 
 export class AuthController {

@@ -1,4 +1,4 @@
-const BASE_URL = 'https://growith-two.vercel.app/api/v1/investor/auth';
+const BASE_URL = 'https://growith-zwl3.vercel.app/api/v1/investor/auth';
 
 async function testAuth() {
   const timestamp = Date.now();

@@ -5,7 +5,7 @@ import {
   RegisterRequestDto,
   ValidateEmailRequestDto,
 } from '@modules/investor/application/dtos/auth.dto';
-import { AuthResponse, ValidateEmailResponse } from '@modules/investor/application/models/auth-response.model';
+import { AuthResponse, ValidateEmailResponse } from '../../../modules/investor/application/models/auth-response.model';
 
 export interface InvestorAuthUseCasePort {
   register(input: RegisterRequestDto): Promise<AuthResponse>;

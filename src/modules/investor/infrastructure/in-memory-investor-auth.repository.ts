@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { randomUUID } from 'crypto';
-import { InvestorAuthRepositoryPort } from '@core/ports/outbound/investor-auth.repository.port';
+import { InvestorAuthRepositoryPort } from '../../../core/ports/outbound/investor-auth.repository.port';
 import { CreateUserInput, InvestorUser } from '../application/models/investor-user.model';
 
 @Injectable()

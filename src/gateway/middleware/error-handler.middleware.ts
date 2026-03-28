@@ -1,5 +1,5 @@
 import { NextFunction, Request, Response } from 'express';
-import { HttpError } from '@shared/errors/http-error';
+import { HttpError } from '../../shared/errors/http-error';
 
 export const notFoundHandler = (_req: Request, res: Response) => {
   res.status(404).json({

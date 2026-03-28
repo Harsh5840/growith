@@ -2,9 +2,9 @@ import compression from 'compression';
 import cors from 'cors';
 import express from 'express';
 import helmet from 'helmet';
-import { createContainer } from '@infrastructure/container';
-import { createAuthRouter } from '@gateway/routes/auth.routes';
-import { errorHandler, notFoundHandler } from '@gateway/middleware/error-handler.middleware';
+import { createContainer } from './infrastructure/container';
+import { createAuthRouter } from './gateway/routes/auth.routes';
+import { errorHandler, notFoundHandler } from './gateway/middleware/error-handler.middleware';
 
 export const createApp = () => {
   const app = express();

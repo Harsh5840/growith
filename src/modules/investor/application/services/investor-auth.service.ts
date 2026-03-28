@@ -1,8 +1,8 @@
-import { JwtTokenService } from '@shared/auth/jwt-token.service';
+import { JwtTokenService } from '../../../../shared/auth/jwt-token.service';
 import { OAuth2Client } from 'google-auth-library';
 import * as bcrypt from 'bcryptjs';
-import { InvestorAuthUseCasePort } from '@core/ports/inbound/investor-auth.usecase.port';
-import { InvestorAuthRepositoryPort } from '@core/ports/outbound/investor-auth.repository.port';
+import { InvestorAuthUseCasePort } from '../../../../core/ports/inbound/investor-auth.usecase.port';
+import { InvestorAuthRepositoryPort } from '../../../../core/ports/outbound/investor-auth.repository.port';
 import {
   GoogleAuthRequestDto,
   LoginRequestDto,
@@ -11,7 +11,7 @@ import {
   ValidateEmailRequestDto,
 } from '../dtos/auth.dto';
 import { AuthResponse, AuthUserPayload, ValidateEmailResponse } from '../models/auth-response.model';
-import { HttpError } from '@shared/errors/http-error';
+import { HttpError } from '../../../../shared/errors/http-error';
 
 export class InvestorAuthService implements InvestorAuthUseCasePort {
   private readonly googleClient: OAuth2Client;

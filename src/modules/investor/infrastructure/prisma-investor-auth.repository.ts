@@ -1,7 +1,7 @@
 import { Prisma } from '@prisma/client';
-import { InvestorAuthRepositoryPort } from '@core/ports/outbound/investor-auth.repository.port';
+import { InvestorAuthRepositoryPort } from '../../../core/ports/outbound/investor-auth.repository.port';
 import { CreateUserInput, InvestorUser } from '../application/models/investor-user.model';
-import { getPrismaClient } from '@shared/database/prisma.service';
+import { getPrismaClient } from '../../../shared/database/prisma.service';
 
 export class PrismaInvestorAuthRepository implements InvestorAuthRepositoryPort {
   private readonly prisma = getPrismaClient();

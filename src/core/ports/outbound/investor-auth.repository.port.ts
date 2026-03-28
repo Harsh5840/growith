@@ -1,4 +1,4 @@
-import { CreateUserInput, InvestorUser } from '@modules/investor/application/models/investor-user.model';
+import { CreateUserInput, InvestorUser } from '../../../modules/investor/application/models/investor-user.model';
 
 export interface InvestorAuthRepositoryPort {
   findById(id: string): Promise<InvestorUser | null>;

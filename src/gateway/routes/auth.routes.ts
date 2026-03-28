@@ -1,7 +1,7 @@
 import { RequestHandler, Router } from 'express';
-import { AuthController } from '@gateway/controllers/investor/auth.controller';
+import { AuthController } from '../controllers/investor/auth.controller';
 import * as Joi from 'joi';
-import { HttpError } from '@shared/errors/http-error';
+import { HttpError } from '../../shared/errors/http-error';
 
 const validate = (schema: Joi.ObjectSchema): RequestHandler => {
   return (req, _res, next) => {

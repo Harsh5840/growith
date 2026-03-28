@@ -1,7 +1,7 @@
 import { NextFunction, Request, Response } from 'express';
 import { JwtTokenService } from './jwt-token.service';
 import { AuthRequest } from '../../types/auth-request';
-import { HttpError } from '@shared/errors/http-error';
+import { HttpError } from '../errors/http-error';
 
 export const createAuthenticate = (jwtTokenService: JwtTokenService) => {
   return (req: Request, _res: Response, next: NextFunction) => {

@@ -1,5 +1,5 @@
 import jwt, { SignOptions } from 'jsonwebtoken';
-import { HttpError } from '@shared/errors/http-error';
+import { HttpError } from '../errors/http-error';
 
 export interface JwtPayload {
   userId: string;

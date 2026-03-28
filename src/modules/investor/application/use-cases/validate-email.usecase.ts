@@ -1,4 +1,4 @@
-import { InvestorAuthUseCasePort } from '@core/ports/inbound/investor-auth.usecase.port';
+import { InvestorAuthUseCasePort } from '../../../../core/ports/inbound/investor-auth.usecase.port';
 import { ValidateEmailRequestDto } from '../dtos/auth.dto';
 import { ValidateEmailResponse } from '../models/auth-response.model';
 
