@@ -54,6 +54,10 @@ export class PrismaInvestorAuthRepository implements InvestorAuthRepositoryPort 
       profilePicture: patch.profilePicture,
       emailVerified: patch.emailVerified,
       isActive: patch.isActive,
+      forgotPasswordCode: patch.forgotPasswordCode,
+      forgotPasswordExpires: patch.forgotPasswordExpires,
+      emailVerificationCode: patch.emailVerificationCode,
+      emailVerificationExpires: patch.emailVerificationExpires,
       lastLoginAt: patch.lastLoginAt,
     };
 
@@ -74,6 +78,10 @@ export class PrismaInvestorAuthRepository implements InvestorAuthRepositoryPort 
     profilePicture: string | null;
     emailVerified: boolean;
     isActive: boolean;
+    forgotPasswordCode: string | null;
+    forgotPasswordExpires: Date | null;
+    emailVerificationCode: string | null;
+    emailVerificationExpires: Date | null;
     lastLoginAt: Date | null;
     createdAt: Date;
     updatedAt: Date;
@@ -87,6 +95,10 @@ export class PrismaInvestorAuthRepository implements InvestorAuthRepositoryPort 
       profilePicture: user.profilePicture ?? undefined,
       emailVerified: user.emailVerified,
       isActive: user.isActive,
+      forgotPasswordCode: user.forgotPasswordCode ?? undefined,
+      forgotPasswordExpires: user.forgotPasswordExpires ?? undefined,
+      emailVerificationCode: user.emailVerificationCode ?? undefined,
+      emailVerificationExpires: user.emailVerificationExpires ?? undefined,
       lastLoginAt: user.lastLoginAt ?? undefined,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,

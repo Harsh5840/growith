@@ -7,6 +7,10 @@ export interface InvestorUser {
   profilePicture?: string;
   emailVerified: boolean;
   isActive: boolean;
+  forgotPasswordCode?: string;
+  forgotPasswordExpires?: Date;
+  emailVerificationCode?: string;
+  emailVerificationExpires?: Date;
   lastLoginAt?: Date;
   createdAt: Date;
   updatedAt: Date;

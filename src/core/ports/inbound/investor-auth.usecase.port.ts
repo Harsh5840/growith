@@ -3,7 +3,10 @@ import {
   LoginRequestDto,
   RefreshTokenRequestDto,
   RegisterRequestDto,
+  ResetPasswordRequestDto,
   ValidateEmailRequestDto,
+  VerifyEmailRequestDto,
+  VerifyForgotPasswordCodeDto,
 } from '@modules/investor/application/dtos/auth.dto';
 import { AuthResponse, ValidateEmailResponse } from '../../../modules/investor/application/models/auth-response.model';
 
@@ -16,7 +19,10 @@ export interface InvestorAuthUseCasePort {
   refreshToken(input: RefreshTokenRequestDto): Promise<{ accessToken: string; refreshToken: string }>;
   me(userId: string): Promise<AuthResponse['user']>;
   sendPasswordResetEmail(email: string): Promise<void>;
-  resetPassword(token: string, newPassword: string, confirmPassword: string): Promise<void>;
+  verifyForgotPasswordCode(input: VerifyForgotPasswordCodeDto): Promise<{ success: boolean; message: string }>;
+  resetPassword(input: ResetPasswordRequestDto): Promise<void>;
+  sendEmailVerification(email: string): Promise<void>;
+  verifyEmail(input: VerifyEmailRequestDto): Promise<{ success: boolean; message: string }>;
 }
 
 export const INVESTOR_AUTH_USECASE = Symbol('INVESTOR_AUTH_USECASE');

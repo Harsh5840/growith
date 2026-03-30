@@ -47,13 +47,28 @@ const refreshSchema = Joi.object({ refreshToken: Joi.string().required() });
 
 const forgotPasswordSchema = Joi.object({ email: Joi.string().email().required() });
 
+const verifyForgotPasswordCodeSchema = Joi.object({
+  email: Joi.string().email().required(),
+  code: Joi.string().required(),
+});
+
 const resetPasswordSchema = Joi.object({
-  token: Joi.string().required(),
+  email: Joi.string().email().required(),
+  code: Joi.string().required(),
   newPassword: Joi.string()
     .min(8)
     .pattern(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/)
     .required(),
   confirmPassword: Joi.string().valid(Joi.ref('newPassword')).required(),
+});
+
+const sendEmailVerificationSchema = Joi.object({
+  email: Joi.string().email().required(),
+});
+
+const verifyEmailSchema = Joi.object({
+  email: Joi.string().email().required(),
+  code: Joi.string().required(),
 });
 
 export const createAuthRouter = (authController: AuthController, authenticate: RequestHandler) => {
@@ -67,7 +82,10 @@ export const createAuthRouter = (authController: AuthController, authenticate: R
   router.post('/google', validate(googleSchema), authController.googleAuth);
   router.post('/refresh-token', validate(refreshSchema), authController.refreshToken);
   router.post('/forgot-password', validate(forgotPasswordSchema), authController.forgotPassword);
+  router.post('/verify-forgot-password-code', validate(verifyForgotPasswordCodeSchema), authController.verifyForgotPasswordCode);
   router.post('/reset-password', validate(resetPasswordSchema), authController.resetPassword);
+  router.post('/send-email-verification', validate(sendEmailVerificationSchema), authController.sendEmailVerification);
+  router.post('/verify-email', validate(verifyEmailSchema), authController.verifyEmail);
   router.post('/logout', authenticate, authController.logout);
   router.get('/me', authenticate, authController.me);
 

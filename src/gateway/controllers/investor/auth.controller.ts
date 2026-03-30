@@ -7,6 +7,8 @@ import {
 	RegisterRequestDto,
 	ResetPasswordRequestDto,
 	ValidateEmailRequestDto,
+	VerifyEmailRequestDto,
+	VerifyForgotPasswordCodeDto,
 } from '@modules/investor/application/dtos/auth.dto';
 import { RegisterInvestorUseCase } from '../../../modules/investor/application/use-cases/register-investor.usecase';
 import { LoginInvestorUseCase } from '../../../modules/investor/application/use-cases/login-investor.usecase';
@@ -109,7 +111,17 @@ export class AuthController {
 		try {
 			const input = req.body as ForgotPasswordRequestDto;
 			await this.investorAuthService.sendPasswordResetEmail(input.email);
-			res.json(successResponse(200, 'Password reset email sent'));
+			res.json(successResponse(200, 'Password reset code sent'));
+		} catch (error) {
+			next(error);
+		}
+	};
+
+	verifyForgotPasswordCode = async (req: Request, res: Response, next: NextFunction) => {
+		try {
+			const input = req.body as VerifyForgotPasswordCodeDto;
+			const result = await this.investorAuthService.verifyForgotPasswordCode(input);
+			res.json(successResponse(200, result.message));
 		} catch (error) {
 			next(error);
 		}
@@ -118,8 +130,28 @@ export class AuthController {
 	resetPassword = async (req: Request, res: Response, next: NextFunction) => {
 		try {
 			const input = req.body as ResetPasswordRequestDto;
-			await this.investorAuthService.resetPassword(input.token, input.newPassword, input.confirmPassword);
+			await this.investorAuthService.resetPassword(input);
 			res.json(successResponse(200, 'Password reset successfully'));
+		} catch (error) {
+			next(error);
+		}
+	};
+
+	sendEmailVerification = async (req: Request, res: Response, next: NextFunction) => {
+		try {
+			const { email } = req.body;
+			await this.investorAuthService.sendEmailVerification(email);
+			res.json(successResponse(200, 'Email verification code sent'));
+		} catch (error) {
+			next(error);
+		}
+	};
+
+	verifyEmail = async (req: Request, res: Response, next: NextFunction) => {
+		try {
+			const input = req.body as VerifyEmailRequestDto;
+			const result = await this.investorAuthService.verifyEmail(input);
+			res.json(successResponse(200, result.message));
 		} catch (error) {
 			next(error);
 		}

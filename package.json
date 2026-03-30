@@ -4,10 +4,10 @@
   "description": "Growith Platform Backend - Phase 1",
   "scripts": {
     "postinstall": "prisma generate",
-    "build": "prisma generate && tsc -p tsconfig.build.json",
-    "start": "node -r tsconfig-paths/register dist/src/server.js",
+    "build": "prisma generate && tsc -p tsconfig.build.json && npx tsc-alias -p tsconfig.build.json",
+    "start": "node dist/src/server.js",
     "start:dev": "ts-node -r tsconfig-paths/register src/server.ts",
-    "start:prod": "node -r tsconfig-paths/register dist/src/server.js",
+    "start:prod": "node dist/src/server.js",
     "lint": "eslint \"{src,test}/**/*.ts\"",
     "test": "jest",
     "test:watch": "jest --watch",
@@ -57,6 +57,7 @@
     "ts-jest": "^29.0.0",
     "ts-node": "^10.0.0",
     "tsconfig-paths": "^4.2.0",
+    "tsc-alias": "^1.8.8",
     "typescript": "^5.0.0"
   }
 }

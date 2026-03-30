@@ -8,10 +8,14 @@ import {
   LoginRequestDto,
   RefreshTokenRequestDto,
   RegisterRequestDto,
+  ResetPasswordRequestDto,
   ValidateEmailRequestDto,
+  VerifyEmailRequestDto,
+  VerifyForgotPasswordCodeDto,
 } from '../dtos/auth.dto';
 import { AuthResponse, AuthUserPayload, ValidateEmailResponse } from '../models/auth-response.model';
 import { HttpError } from '../../../../shared/errors/http-error';
+import * as crypto from 'crypto';
 
 export class InvestorAuthService implements InvestorAuthUseCasePort {
   private readonly googleClient: OAuth2Client;
@@ -242,30 +246,114 @@ export class InvestorAuthService implements InvestorAuthUseCasePort {
     };
   }
 
+  private generateCode(): string {
+    return Math.floor(100000 + Math.random() * 900000).toString();
+  }
+
   async sendPasswordResetEmail(email: string): Promise<void> {
     const user = await this.repository.findByEmail(email.toLowerCase());
     if (!user) {
       throw new HttpError(404, 'No account found with this email');
     }
+
+    const code = this.generateCode();
+    const expires = new Date();
+    expires.setMinutes(expires.getMinutes() + 15);
+
+    await this.repository.updateUser(user.id, {
+      forgotPasswordCode: code,
+      forgotPasswordExpires: expires,
+    });
+
+    console.log(`[Email-Mock] Reset password for ${email}. Code: ${code}. Link: ?email=${email}&code=${code}`);
   }
 
-  async resetPassword(token: string, newPassword: string, confirmPassword: string): Promise<void> {
-    if (newPassword !== confirmPassword) {
+  async verifyForgotPasswordCode(input: VerifyForgotPasswordCodeDto): Promise<{ success: boolean; message: string }> {
+    const user = await this.repository.findByEmail(input.email.toLowerCase());
+
+    if (!user || user.forgotPasswordCode !== input.code) {
+      throw new HttpError(400, 'Invalid verification code');
+    }
+
+    if (!user.forgotPasswordExpires || user.forgotPasswordExpires < new Date()) {
+      throw new HttpError(400, 'Verification code has expired');
+    }
+
+    return { success: true, message: 'Code is valid' };
+  }
+
+  async resetPassword(input: ResetPasswordRequestDto): Promise<void> {
+    if (input.newPassword !== input.confirmPassword) {
       throw new HttpError(400, 'Passwords do not match');
     }
 
-    const decoded = this.jwtTokenService.verifyToken(token);
-    if (decoded.type !== 'access') {
-      throw new HttpError(401, 'Invalid reset token');
+    const user = await this.repository.findByEmail(input.email.toLowerCase());
+
+    if (!user || user.forgotPasswordCode !== input.code) {
+      throw new HttpError(400, 'Invalid or expired reset code');
     }
 
-    const user = await this.repository.findById(decoded.userId);
+    if (!user.forgotPasswordExpires || user.forgotPasswordExpires < new Date()) {
+      throw new HttpError(400, 'Reset code has expired');
+    }
+
+    const passwordHash = await bcrypt.hash(input.newPassword, Number(process.env.BCRYPT_SALT_ROUNDS || 12));
+    
+    await this.repository.updateUser(user.id, { 
+      passwordHash,
+      forgotPasswordCode: null as any,
+      forgotPasswordExpires: null as any,
+    });
+  }
+
+  async sendEmailVerification(email: string): Promise<void> {
+    const user = await this.repository.findByEmail(email.toLowerCase());
     if (!user) {
-      throw new HttpError(404, 'User account not found');
+      throw new HttpError(404, 'No account found with this email');
     }
 
-    const passwordHash = await bcrypt.hash(newPassword, Number(process.env.BCRYPT_SALT_ROUNDS || 12));
-    await this.repository.updateUser(user.id, { passwordHash });
+    if (user.emailVerified) {
+      throw new HttpError(400, 'Email is already verified');
+    }
+
+    const code = this.generateCode();
+    const expires = new Date();
+    expires.setMinutes(expires.getMinutes() + 15);
+
+    await this.repository.updateUser(user.id, {
+      emailVerificationCode: code,
+      emailVerificationExpires: expires,
+    });
+
+    console.log(`[Email-Mock] Verify email for ${email}. Code: ${code}`);
+  }
+
+  async verifyEmail(input: VerifyEmailRequestDto): Promise<{ success: boolean; message: string }> {
+    const user = await this.repository.findByEmail(input.email.toLowerCase());
+
+    if (!user) {
+      throw new HttpError(404, 'No account found with this email');
+    }
+
+    if (user.emailVerified) {
+      return { success: true, message: 'Email already verified' };
+    }
+
+    if (user.emailVerificationCode !== input.code) {
+      throw new HttpError(400, 'Invalid verification code');
+    }
+
+    if (!user.emailVerificationExpires || user.emailVerificationExpires < new Date()) {
+      throw new HttpError(400, 'Verification code has expired');
+    }
+
+    await this.repository.updateUser(user.id, {
+      emailVerified: true,
+      emailVerificationCode: null as any,
+      emailVerificationExpires: null as any,
+    });
+
+    return { success: true, message: 'Email verified successfully' };
   }
 
   private buildAuthResponse(

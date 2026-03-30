@@ -59,10 +59,36 @@ export class ForgotPasswordRequestDto {
   email!: string;
 }
 
-export class ResetPasswordRequestDto {
+export class VerifyForgotPasswordCodeDto {
+  @IsEmail()
+  email!: string;
+
   @IsString()
   @IsNotEmpty()
-  token!: string;
+  code!: string;
+}
+
+export class VerifyEmailRequestDto {
+  @IsEmail()
+  email!: string;
+
+  @IsString()
+  @IsNotEmpty()
+  code!: string;
+}
+
+export class ResendEmailVerificationDto {
+  @IsEmail()
+  email!: string;
+}
+
+export class ResetPasswordRequestDto {
+  @IsEmail()
+  email!: string;
+
+  @IsString()
+  @IsNotEmpty()
+  code!: string;
 
   @IsString()
   @MinLength(8)
