@@ -315,6 +315,7 @@ export class InvestorAuthService implements InvestorAuthUseCasePort {
     
     await this.repository.updateUser(user.id, { 
       passwordHash,
+      emailVerified: true, // Implicitly verify email on successful reset
       forgotPasswordCode: null as any,
       forgotPasswordExpires: null as any,
     });
