@@ -47,6 +47,9 @@ export class InvestorAuthService implements InvestorAuthUseCasePort {
       password: passwordHash,
     });
 
+    // Automatically trigger the email verification code dispatch
+    await this.sendEmailVerification(user.email);
+
     const tokens = this.jwtTokenService.generateTokens(user.id, user.email);
     return this.buildAuthResponse(user, tokens);
   }

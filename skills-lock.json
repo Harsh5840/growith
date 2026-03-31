@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "skills": {
+    "didit-kyc-onboarding": {
+      "source": "didit-protocol/skills",
+      "sourceType": "github",
+      "computedHash": "7224d866a73e005ca67d816dac7e4066e1234ccda5916b3f4436ec07140a7a95"
+    }
+  }
+}
