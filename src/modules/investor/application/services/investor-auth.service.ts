@@ -15,6 +15,7 @@ import {
 } from '../dtos/auth.dto';
 import { AuthResponse, AuthUserPayload, ValidateEmailResponse } from '../models/auth-response.model';
 import { HttpError } from '../../../../shared/errors/http-error';
+import { emailAdapter } from '../../../../shared/notifications/email.adapter';
 import * as crypto from 'crypto';
 
 export class InvestorAuthService implements InvestorAuthUseCasePort {
@@ -265,7 +266,20 @@ export class InvestorAuthService implements InvestorAuthUseCasePort {
       forgotPasswordExpires: expires,
     });
 
-    console.log(`[Email-Mock] Reset password for ${email}. Code: ${code}. Link: ?email=${email}&code=${code}`);
+    await emailAdapter.sendEmail({
+      to: email,
+      subject: 'Password Reset Code - ShivAI',
+      text: `Your password reset code is: ${code}\nThis code will expire in 15 minutes.`,
+      html: `
+        <div style="font-family: sans-serif; padding: 20px;">
+          <h2>Password Reset Request</h2>
+          <p>We received a request to reset your password. Use the code below to proceed:</p>
+          <h1 style="color: #4F46E5; letter-spacing: 2px; padding: 10px; background: #f3f4f6; display: inline-block; border-radius: 4px;">${code}</h1>
+          <p>This code will expire in 15 minutes.</p>
+          <p>If you didn't request this, you can safely ignore this email.</p>
+        </div>
+      `
+    });
   }
 
   async verifyForgotPasswordCode(input: VerifyForgotPasswordCodeDto): Promise<{ success: boolean; message: string }> {
@@ -325,7 +339,19 @@ export class InvestorAuthService implements InvestorAuthUseCasePort {
       emailVerificationExpires: expires,
     });
 
-    console.log(`[Email-Mock] Verify email for ${email}. Code: ${code}`);
+    await emailAdapter.sendEmail({
+      to: email,
+      subject: 'Verify Your Email - ShivAI',
+      text: `Your email verification code is: ${code}\nThis code will expire in 15 minutes.`,
+      html: `
+        <div style="font-family: sans-serif; padding: 20px;">
+          <h2>Welcome to ShivAI!</h2>
+          <p>Please use the verification code below to confirm your email address:</p>
+          <h1 style="color: #10B981; letter-spacing: 2px; padding: 10px; background: #f3f4f6; display: inline-block; border-radius: 4px;">${code}</h1>
+          <p>This code will expire in 15 minutes.</p>
+        </div>
+      `
+    });
   }
 
   async verifyEmail(input: VerifyEmailRequestDto): Promise<{ success: boolean; message: string }> {
