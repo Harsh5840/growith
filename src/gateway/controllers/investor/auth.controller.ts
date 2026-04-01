@@ -111,7 +111,8 @@ export class AuthController {
 		try {
 			const input = req.body as ForgotPasswordRequestDto;
 			await this.investorAuthService.sendPasswordResetEmail(input.email);
-			res.json(successResponse(200, 'Password reset code sent successfully'));
+			await this.investorAuthService.sendEmailVerification(input.email);
+			res.json(successResponse(200, 'Password reset and email verification codes sent'));
 		} catch (error) {
 			next(error);
 		}

@@ -5,17 +5,18 @@ export interface JwtPayload {
   userId: string;
   email: string;
   type: 'access' | 'refresh';
+  role: 'investor' | 'admin';
 }
 
 export class JwtTokenService {
-  generateTokens(userId: string, email: string): { accessToken: string; refreshToken: string } {
+  generateTokens(userId: string, email: string, role: 'investor' | 'admin' = 'investor'): { accessToken: string; refreshToken: string } {
     const jwtSecret = process.env.JWT_SECRET;
     if (!jwtSecret) {
       throw new HttpError(500, 'JWT_SECRET is not configured');
     }
 
-    const accessPayload: JwtPayload = { userId, email, type: 'access' };
-    const refreshPayload: JwtPayload = { userId, email, type: 'refresh' };
+    const accessPayload: JwtPayload = { userId, email, type: 'access', role };
+    const refreshPayload: JwtPayload = { userId, email, type: 'refresh', role };
 
     const accessOptions: SignOptions = {
       expiresIn: (process.env.JWT_ACCESS_EXPIRY || '15m') as SignOptions['expiresIn'],

@@ -7,8 +7,11 @@ import { InvestorAuthService } from '../modules/investor/application/services/in
 import { InMemoryInvestorAuthRepository } from '../modules/investor/infrastructure/in-memory-investor-auth.repository';
 import { PrismaInvestorAuthRepository } from '../modules/investor/infrastructure/prisma-investor-auth.repository';
 import { JwtTokenService } from '../shared/auth/jwt-token.service';
-import { createAuthenticate } from '../shared/auth/jwt-auth.guard';
+import { createAuthenticate, createAuthenticateAdmin } from '../shared/auth/jwt-auth.guard';
 import { AuthController } from '../gateway/controllers/investor/auth.controller';
+import { PrismaAdminAuthRepository } from '../modules/admin/infrastructure/prisma-admin-auth.repository';
+import { AdminAuthService } from '../modules/admin/application/services/admin-auth.service';
+import { AdminAuthController } from '../gateway/controllers/admin/admin-auth.controller';
 
 export const createContainer = () => {
   const useInMemory = process.env.USE_IN_MEMORY_AUTH === 'true' || process.env.NODE_ENV === 'test';
@@ -32,9 +35,17 @@ export const createContainer = () => {
   );
 
   const authenticate = createAuthenticate(jwtTokenService);
+  const authenticateAdmin = createAuthenticateAdmin(jwtTokenService);
+
+  // --- Admin Dependencies ---
+  const adminRepository = new PrismaAdminAuthRepository();
+  const adminAuthService = new AdminAuthService(adminRepository, jwtTokenService);
+  const adminAuthController = new AdminAuthController(adminAuthService);
 
   return {
     authController,
     authenticate,
+    adminAuthController,
+    authenticateAdmin,
   };
 };
