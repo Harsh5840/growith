@@ -21,6 +21,20 @@ model InvestorAuthUser {
 	emailVerificationCode    String?
 	emailVerificationExpires DateTime?
 	lastLoginAt              DateTime?
+	kycStatus                String    @default("PENDING")
+	createdAt                DateTime  @default(now())
+	updatedAt                DateTime  @updatedAt
+}
+
+model AdminUser {
+	id                       String    @id @default(cuid())
+	email                    String    @unique
+	fullName                 String
+	passwordHash             String
+	isActive                 Boolean   @default(true)
+	forgotPasswordCode       String?
+	forgotPasswordExpires    DateTime?
+	lastLoginAt              DateTime?
 	createdAt                DateTime  @default(now())
 	updatedAt                DateTime  @updatedAt
 }
