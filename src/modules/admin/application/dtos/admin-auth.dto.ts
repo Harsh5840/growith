@@ -39,8 +39,9 @@ export interface AdminCreateUserDto {
   password?: string;
 }
 
-export interface AdminUpdateUserStatusDto {
-  isActive: boolean;
+export interface AdminEditUserDto {
+  fullName?: string;
+  isActive?: boolean;
 }
 
 export interface AdminListUsersQueryDto {
