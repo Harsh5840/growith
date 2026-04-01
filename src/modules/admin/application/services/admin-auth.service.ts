@@ -8,7 +8,7 @@ import {
   AdminForgotPasswordDto,
   AdminResetPasswordDto,
   AdminCreateUserDto,
-  AdminUpdateUserStatusDto,
+  AdminEditUserDto,
   AdminListUsersQueryDto,
 } from '../dtos/admin-auth.dto';
 import { HttpError } from '../../../../shared/errors/http-error';
@@ -171,13 +171,27 @@ export class AdminAuthService {
     return safeUser as Partial<InvestorAuthUser>;
   }
 
-  async toggleUserStatus(id: string, input: AdminUpdateUserStatusDto): Promise<void> {
+  async editUser(id: string, input: AdminEditUserDto): Promise<void> {
     const user = await this.repository.findInvestorById(id);
     if (!user) {
       throw new HttpError(404, 'User not found');
     }
 
-    await this.repository.updateInvestor(id, { isActive: input.isActive });
+    const patch: Partial<InvestorAuthUser> = {};
+
+    if (input.fullName !== undefined) {
+      patch.fullName = input.fullName.trim();
+    }
+
+    if (input.isActive !== undefined) {
+      patch.isActive = input.isActive;
+    }
+
+    if (Object.keys(patch).length === 0) {
+      throw new HttpError(400, 'At least one editable field is required');
+    }
+
+    await this.repository.updateInvestor(id, patch);
   }
 
   async deleteUser(id: string): Promise<void> {

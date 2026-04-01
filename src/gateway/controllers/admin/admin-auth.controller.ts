@@ -6,7 +6,7 @@ import {
   AdminForgotPasswordDto,
   AdminResetPasswordDto,
   AdminCreateUserDto,
-  AdminUpdateUserStatusDto,
+  AdminEditUserDto,
   AdminListUsersQueryDto
 } from '../../../modules/admin/application/dtos/admin-auth.dto';
 import { successResponse } from '../../../shared/http/api-response';
@@ -98,12 +98,12 @@ export class AdminAuthController {
     }
   };
 
-  toggleUserStatus = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  editUser = async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
       const { id } = req.params;
-      const input = req.body as AdminUpdateUserStatusDto;
-      await this.adminAuthService.toggleUserStatus(id, input);
-      res.json(successResponse(200, 'User status updated successfully', null));
+      const input = req.body as AdminEditUserDto;
+      await this.adminAuthService.editUser(id, input);
+      res.json(successResponse(200, 'User updated successfully', null));
     } catch (error) {
       next(error);
     }

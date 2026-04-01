@@ -30,8 +30,9 @@ const adminCreateUserSchema = Joi.object({
 });
 
 const adminEditUserSchema = Joi.object({
-  isActive: Joi.boolean().required(),
-});
+  fullName: Joi.string().min(2).max(100).optional(),
+  isActive: Joi.boolean().optional(),
+}).or('fullName', 'isActive');
 
 export const createAdminRouter = (
   adminAuthController: AdminAuthController,
@@ -42,7 +43,7 @@ export const createAdminRouter = (
   router.get('/users', authenticateAdmin, adminAuthController.listUsers);
   router.get('/users/:id', authenticateAdmin, adminAuthController.getUserById);
   router.post('/users/create', authenticateAdmin, validate(adminCreateUserSchema), adminAuthController.createUser);
-  router.patch('/users/:id/edit', authenticateAdmin, validate(adminEditUserSchema), adminAuthController.toggleUserStatus);
+  router.patch('/users/:id/edit', authenticateAdmin, validate(adminEditUserSchema), adminAuthController.editUser);
   router.delete('/users/:id', authenticateAdmin, adminAuthController.deleteUser);
 
   return router;
