@@ -50,19 +50,6 @@ const adminResetPasswordSchema = Joi.object({
     .messages({ 'any.only': 'Passwords do not match' }),
 });
 
-const adminCreateUserSchema = Joi.object({
-  email: Joi.string().email().required(),
-  fullName: Joi.string().min(2).max(100).required(),
-  password: Joi.string()
-    .min(8)
-    .pattern(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/)
-    .optional(),
-});
-
-const adminUpdateUserStatusSchema = Joi.object({
-  isActive: Joi.boolean().required(),
-});
-
 export const createAdminAuthRouter = (
   adminAuthController: AdminAuthController, 
   authenticateAdmin: RequestHandler
@@ -73,14 +60,9 @@ export const createAdminAuthRouter = (
   router.post('/login', validate(adminLoginSchema), adminAuthController.login);
   router.post('/forgot-password', validate(adminForgotPasswordSchema), adminAuthController.forgotPassword);
   router.post('/reset-password', validate(adminResetPasswordSchema), adminAuthController.resetPassword);
-  
-  // Protected Routes (Require Admin Auth Token)
+
+  // Protected Auth Route (Require Admin Auth Token)
   router.get('/me', authenticateAdmin, adminAuthController.me);
-  router.get('/users', authenticateAdmin, adminAuthController.listUsers);
-  router.get('/users/:id', authenticateAdmin, adminAuthController.getUserById);
-  router.post('/users', authenticateAdmin, validate(adminCreateUserSchema), adminAuthController.createUser);
-  router.patch('/users/:id/status', authenticateAdmin, validate(adminUpdateUserStatusSchema), adminAuthController.toggleUserStatus);
-  router.delete('/users/:id', authenticateAdmin, adminAuthController.deleteUser);
 
   return router;
 };

@@ -4,7 +4,8 @@ import { PrismaClient } from '@prisma/client';
 type Json = Record<string, unknown> | null;
 
 const API_ROOT = process.env.API_BASE_URL || 'http://localhost:3000/api/v1';
-const ADMIN_API_BASE = `${API_ROOT}/admin/auth`;
+const ADMIN_AUTH_API_BASE = `${API_ROOT}/admin/auth`;
+const ADMIN_API_BASE = `${API_ROOT}/admin`;
 const INVESTOR_API_BASE = `${API_ROOT}/investor/auth`;
 const ADMIN_SECRET = process.env.ADMIN_REGISTRATION_SECRET || 'fallback-secret-123';
 const timestamp = Date.now();
@@ -144,7 +145,8 @@ async function seedInvestorToken() {
 
 async function run() {
   console.log('=== ADMIN ROUTE FULL CASE TEST (LIVE SERVER) ===');
-  console.log(`Base URL: ${ADMIN_API_BASE}`);
+  console.log(`Auth Base URL: ${ADMIN_AUTH_API_BASE}`);
+  console.log(`Admin Base URL: ${ADMIN_API_BASE}`);
 
   try {
     await prisma.adminUser.deleteMany({ where: { email: adminEmail } });
@@ -161,7 +163,7 @@ async function run() {
     await runCase(
       'Register admin with wrong secret',
       () =>
-        postJson(`${ADMIN_API_BASE}/register`, {
+        postJson(`${ADMIN_AUTH_API_BASE}/register`, {
           email: `wrong_${adminEmail}`,
           fullName: 'Wrong Secret Admin',
           password: adminPassword,
@@ -173,7 +175,7 @@ async function run() {
 
     await runCase(
       'Register admin with invalid payload',
-      () => postJson(`${ADMIN_API_BASE}/register`, { email: 'bad-email' }),
+      () => postJson(`${ADMIN_AUTH_API_BASE}/register`, { email: 'bad-email' }),
       400,
       assertErrorEnvelope,
     );
@@ -181,7 +183,7 @@ async function run() {
     await runCase(
       'Register admin success',
       () =>
-        postJson(`${ADMIN_API_BASE}/register`, {
+        postJson(`${ADMIN_AUTH_API_BASE}/register`, {
           email: adminEmail,
           fullName: 'Admin Route Tester',
           password: adminPassword,
@@ -201,7 +203,7 @@ async function run() {
     await runCase(
       'Register duplicate admin',
       () =>
-        postJson(`${ADMIN_API_BASE}/register`, {
+        postJson(`${ADMIN_AUTH_API_BASE}/register`, {
           email: adminEmail,
           fullName: 'Admin Route Tester',
           password: adminPassword,
@@ -214,7 +216,7 @@ async function run() {
     await runCase(
       'Login with wrong password',
       () =>
-        postJson(`${ADMIN_API_BASE}/login`, {
+        postJson(`${ADMIN_AUTH_API_BASE}/login`, {
           email: adminEmail,
           password: 'WrongPassword123!',
         }),
@@ -225,7 +227,7 @@ async function run() {
     await runCase(
       'Login success',
       () =>
-        postJson(`${ADMIN_API_BASE}/login`, {
+        postJson(`${ADMIN_AUTH_API_BASE}/login`, {
           email: adminEmail,
           password: adminPassword,
         }),
@@ -239,18 +241,18 @@ async function run() {
       },
     );
 
-    await runCase('GET /me without token', () => getWithToken(`${ADMIN_API_BASE}/me`), 401, assertErrorEnvelope);
+    await runCase('GET /auth/me without token', () => getWithToken(`${ADMIN_AUTH_API_BASE}/me`), 401, assertErrorEnvelope);
 
     await runCase(
-      'GET /me with non-admin token',
-      () => getWithToken(`${ADMIN_API_BASE}/me`, state.investorToken),
+      'GET /auth/me with non-admin token',
+      () => getWithToken(`${ADMIN_AUTH_API_BASE}/me`, state.investorToken),
       403,
       assertErrorEnvelope,
     );
 
     await runCase(
-      'GET /me with admin token',
-      () => getWithToken(`${ADMIN_API_BASE}/me`, state.adminToken),
+      'GET /auth/me with admin token',
+      () => getWithToken(`${ADMIN_AUTH_API_BASE}/me`, state.adminToken),
       200,
       assertSuccessEnvelope,
     );
@@ -279,17 +281,17 @@ async function run() {
     );
 
     await runCase(
-      'POST /users invalid payload',
-      () => postJson(`${ADMIN_API_BASE}/users`, { email: 'bad-email' }, state.adminToken),
+      'POST /users/create invalid payload',
+      () => postJson(`${ADMIN_API_BASE}/users/create`, { email: 'bad-email' }, state.adminToken),
       400,
       assertErrorEnvelope,
     );
 
     await runCase(
-      'POST /users create investor success',
+      'POST /users/create success',
       () =>
         postJson(
-          `${ADMIN_API_BASE}/users`,
+          `${ADMIN_API_BASE}/users/create`,
           {
             email: managedInvestorEmail,
             fullName: 'Managed Investor',
@@ -308,10 +310,10 @@ async function run() {
     );
 
     await runCase(
-      'POST /users duplicate investor',
+      'POST /users/create duplicate investor',
       () =>
         postJson(
-          `${ADMIN_API_BASE}/users`,
+          `${ADMIN_API_BASE}/users/create`,
           {
             email: managedInvestorEmail,
             fullName: 'Managed Investor',
@@ -331,43 +333,43 @@ async function run() {
     );
 
     await runCase(
-      'PATCH /users/:id/status invalid payload',
-      () => patchJson(`${ADMIN_API_BASE}/users/${state.managedInvestorId}/status`, {} as any, state.adminToken),
+      'PATCH /users/:id/edit invalid payload',
+      () => patchJson(`${ADMIN_API_BASE}/users/${state.managedInvestorId}/edit`, {} as any, state.adminToken),
       400,
       assertErrorEnvelope,
     );
 
     await runCase(
-      'PATCH /users/:id/status deactivate user',
-      () => patchJson(`${ADMIN_API_BASE}/users/${state.managedInvestorId}/status`, { isActive: false }, state.adminToken),
+      'PATCH /users/:id/edit deactivate user',
+      () => patchJson(`${ADMIN_API_BASE}/users/${state.managedInvestorId}/edit`, { isActive: false }, state.adminToken),
       200,
       assertSuccessEnvelope,
     );
 
     await runCase(
-      'PATCH /users/:id/status activate user',
-      () => patchJson(`${ADMIN_API_BASE}/users/${state.managedInvestorId}/status`, { isActive: true }, state.adminToken),
+      'PATCH /users/:id/edit activate user',
+      () => patchJson(`${ADMIN_API_BASE}/users/${state.managedInvestorId}/edit`, { isActive: true }, state.adminToken),
       200,
       assertSuccessEnvelope,
     );
 
     await runCase(
       'POST /forgot-password invalid payload',
-      () => postJson(`${ADMIN_API_BASE}/forgot-password`, { email: 'invalid' }),
+      () => postJson(`${ADMIN_AUTH_API_BASE}/forgot-password`, { email: 'invalid' }),
       400,
       assertErrorEnvelope,
     );
 
     await runCase(
       'POST /forgot-password unknown admin',
-      () => postJson(`${ADMIN_API_BASE}/forgot-password`, { email: `unknown_${timestamp}@example.com` }),
+      () => postJson(`${ADMIN_AUTH_API_BASE}/forgot-password`, { email: `unknown_${timestamp}@example.com` }),
       404,
       assertErrorEnvelope,
     );
 
     await runCase(
       'POST /forgot-password existing admin',
-      () => postJson(`${ADMIN_API_BASE}/forgot-password`, { email: adminEmail }),
+      () => postJson(`${ADMIN_AUTH_API_BASE}/forgot-password`, { email: adminEmail }),
       200,
       assertSuccessEnvelope,
     );
@@ -381,7 +383,7 @@ async function run() {
     await runCase(
       'POST /reset-password invalid payload',
       () =>
-        postJson(`${ADMIN_API_BASE}/reset-password`, {
+        postJson(`${ADMIN_AUTH_API_BASE}/reset-password`, {
           email: adminEmail,
           code: '123456',
           newPassword: adminNewPassword,
@@ -394,7 +396,7 @@ async function run() {
     await runCase(
       'POST /reset-password wrong code',
       () =>
-        postJson(`${ADMIN_API_BASE}/reset-password`, {
+        postJson(`${ADMIN_AUTH_API_BASE}/reset-password`, {
           email: adminEmail,
           code: '111111',
           newPassword: adminNewPassword,
@@ -407,7 +409,7 @@ async function run() {
     await runCase(
       'POST /reset-password success',
       () =>
-        postJson(`${ADMIN_API_BASE}/reset-password`, {
+        postJson(`${ADMIN_AUTH_API_BASE}/reset-password`, {
           email: adminEmail,
           code: resetCode,
           newPassword: adminNewPassword,
@@ -420,7 +422,7 @@ async function run() {
     await runCase(
       'Login with old password after reset',
       () =>
-        postJson(`${ADMIN_API_BASE}/login`, {
+        postJson(`${ADMIN_AUTH_API_BASE}/login`, {
           email: adminEmail,
           password: adminPassword,
         }),
@@ -431,7 +433,7 @@ async function run() {
     await runCase(
       'Login with new password after reset',
       () =>
-        postJson(`${ADMIN_API_BASE}/login`, {
+        postJson(`${ADMIN_AUTH_API_BASE}/login`, {
           email: adminEmail,
           password: adminNewPassword,
         }),
