@@ -24,7 +24,6 @@ export class AdminAuthService {
   async register(input: AdminRegisterRequestDto): Promise<AdminAuthResponse> {
     const adminSecret = process.env.ADMIN_REGISTRATION_SECRET || 'fallback-secret-123';
     
-    // Simplistic check to ensure not just anyone can register as admin
     if (input.adminRegistrationSecret !== adminSecret) {
       throw new HttpError(403, 'Invalid admin registration secret');
     }
@@ -65,7 +64,7 @@ export class AdminAuthService {
     return this.buildAuthResponse(user, tokens);
   }
 
-  async me(userId: string) {
+  async me(userId: number) {
     const user = await this.repository.findById(userId);
     if (!user || !user.isActive) {
       throw new HttpError(401, 'Admin account not found or deactivated');
@@ -140,7 +139,7 @@ export class AdminAuthService {
     return this.repository.listAllInvestors(query.search, query.kycStatus);
   }
 
-  async getUserById(id: string): Promise<Partial<InvestorAuthUser>> {
+  async getUserById(id: number): Promise<Partial<InvestorAuthUser>> {
     const user = await this.repository.findInvestorById(id);
     if (!user) {
       throw new HttpError(404, 'User not found');
@@ -156,7 +155,6 @@ export class AdminAuthService {
       throw new HttpError(409, 'User already exists with this email');
     }
 
-    // Since admin is creating, bypass email setup and verify email
     const passwordToUse = input.password || Math.random().toString(36).slice(-8);
     const passwordHash = await bcrypt.hash(passwordToUse, Number(process.env.BCRYPT_SALT_ROUNDS || 12));
     
@@ -164,14 +162,14 @@ export class AdminAuthService {
       email: normalizedEmail,
       fullName: input.fullName,
       passwordHash,
-      emailVerified: true // By-pass email verification sending logic completely
+      emailVerified: true
     });
 
     const { passwordHash: _1, forgotPasswordCode: _2, emailVerificationCode: _3, ...safeUser } = user;
     return safeUser as Partial<InvestorAuthUser>;
   }
 
-  async editUser(id: string, input: AdminEditUserDto): Promise<void> {
+  async editUser(id: number, input: AdminEditUserDto): Promise<void> {
     const user = await this.repository.findInvestorById(id);
     if (!user) {
       throw new HttpError(404, 'User not found');
@@ -194,7 +192,7 @@ export class AdminAuthService {
     await this.repository.updateInvestor(id, patch);
   }
 
-  async deleteUser(id: string): Promise<void> {
+  async deleteUser(id: number): Promise<void> {
     const user = await this.repository.findInvestorById(id);
     if (!user) {
       throw new HttpError(404, 'User not found');
@@ -204,7 +202,7 @@ export class AdminAuthService {
   }
 
   private buildAuthResponse(
-    user: { id: string; email: string; fullName: string },
+    user: { id: number; email: string; fullName: string },
     tokens: { accessToken: string; refreshToken: string },
   ): AdminAuthResponse {
     return {

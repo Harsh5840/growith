@@ -4,7 +4,7 @@ export interface AuthTokens {
 }
 
 export interface AuthUserPayload {
-  id: string;
+  id: number;
   email: string;
   fullName: string;
   profilePicture?: string;

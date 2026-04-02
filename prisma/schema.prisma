@@ -8,7 +8,7 @@ datasource db {
 }
 
 model InvestorAuthUser {
-	id                       String    @id @default(cuid())
+	id                       Int       @id @default(autoincrement())
 	email                    String    @unique
 	fullName                 String
 	passwordHash             String?
@@ -24,10 +24,12 @@ model InvestorAuthUser {
 	kycStatus                String    @default("PENDING")
 	createdAt                DateTime  @default(now())
 	updatedAt                DateTime  @updatedAt
+
+	kyc InvestorKyc?
 }
 
 model AdminUser {
-	id                       String    @id @default(cuid())
+	id                       Int       @id @default(autoincrement())
 	email                    String    @unique
 	fullName                 String
 	passwordHash             String
@@ -37,4 +39,38 @@ model AdminUser {
 	lastLoginAt              DateTime?
 	createdAt                DateTime  @default(now())
 	updatedAt                DateTime  @updatedAt
+}
+
+model InvestorKyc {
+	id                    Int       @id @default(autoincrement())
+	userId                Int       @unique
+	user                  InvestorAuthUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+	// Step 1: Personal Info
+	fullLegalName         String
+	dateOfBirth           String
+	nationality           String
+	countryOfResidence    String
+	city                  String
+	stateProvince         String
+	phoneNumber           String
+	streetAddress         String
+
+	// Step 2: Primary Document
+	primaryDocumentType   String          // "AADHAAR" | "PAN"
+	primaryDocFrontUrl    String          // S3 key
+	primaryDocBackUrl     String?         // S3 key (null for PAN)
+
+	// Step 2: Supporting Document
+	supportingDocName     String?
+	supportingDocUrl      String?         // S3 key
+
+	// Admin Review
+	status                String    @default("PENDING")   // PENDING | APPROVED | REJECTED
+	rejectionReason       String?
+	reviewedBy            Int?            // Admin user ID
+	reviewedAt            DateTime?
+
+	createdAt             DateTime  @default(now())
+	updatedAt             DateTime  @updatedAt
 }

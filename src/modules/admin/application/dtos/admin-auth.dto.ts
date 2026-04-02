@@ -2,7 +2,7 @@ export interface AdminRegisterRequestDto {
   email: string;
   fullName: string;
   password: string;
-  adminRegistrationSecret?: string; // Optional security key
+  adminRegistrationSecret?: string;
 }
 
 export interface AdminLoginRequestDto {
@@ -12,7 +12,7 @@ export interface AdminLoginRequestDto {
 
 export interface AdminAuthResponse {
   user: {
-    id: string;
+    id: number;
     email: string;
     fullName: string;
   };

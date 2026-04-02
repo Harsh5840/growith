@@ -11,11 +11,11 @@ export type EmailVerificationCodeIssueResult = {
 };
 
 export interface InvestorAuthRepositoryPort {
-  findById(id: string): Promise<InvestorUser | null>;
+  findById(id: number): Promise<InvestorUser | null>;
   findByEmail(email: string): Promise<InvestorUser | null>;
   createLocalUser(input: CreateUserInput): Promise<InvestorUser>;
   createGoogleUser(input: Omit<CreateUserInput, 'password'> & { googleId: string; emailVerified: boolean }): Promise<InvestorUser>;
-  updateUser(id: string, patch: Partial<InvestorUser>): Promise<InvestorUser>;
+  updateUser(id: number, patch: Partial<InvestorUser>): Promise<InvestorUser>;
   issueForgotPasswordCode(email: string, code: string, expiresAt: Date): Promise<ForgotPasswordCodeIssueResult>;
   issueEmailVerificationCode(email: string, code: string, expiresAt: Date): Promise<EmailVerificationCodeIssueResult>;
 }

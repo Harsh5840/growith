@@ -1,5 +1,4 @@
 import { Injectable } from '@nestjs/common';
-import { randomUUID } from 'crypto';
 import {
   EmailVerificationCodeIssueResult,
   ForgotPasswordCodeIssueResult,
@@ -9,9 +8,10 @@ import { CreateUserInput, InvestorUser } from '../application/models/investor-us
 
 @Injectable()
 export class InMemoryInvestorAuthRepository implements InvestorAuthRepositoryPort {
-  private readonly users = new Map<string, InvestorUser>();
+  private readonly users = new Map<number, InvestorUser>();
+  private nextId = 1;
 
-  async findById(id: string): Promise<InvestorUser | null> {
+  async findById(id: number): Promise<InvestorUser | null> {
     return this.users.get(id) ?? null;
   }
 
@@ -28,13 +28,14 @@ export class InMemoryInvestorAuthRepository implements InvestorAuthRepositoryPor
   async createLocalUser(input: CreateUserInput): Promise<InvestorUser> {
     const now = new Date();
     const user: InvestorUser = {
-      id: randomUUID(),
+      id: this.nextId++,
       email: input.email.toLowerCase(),
       fullName: input.fullName,
       passwordHash: input.password,
       profilePicture: input.profilePicture,
       emailVerified: false,
       isActive: true,
+      kycStatus: 'PENDING',
       createdAt: now,
       updatedAt: now,
     };
@@ -46,13 +47,14 @@ export class InMemoryInvestorAuthRepository implements InvestorAuthRepositoryPor
   async createGoogleUser(input: Omit<CreateUserInput, 'password'> & { googleId: string; emailVerified: boolean }): Promise<InvestorUser> {
     const now = new Date();
     const user: InvestorUser = {
-      id: randomUUID(),
+      id: this.nextId++,
       email: input.email.toLowerCase(),
       fullName: input.fullName,
       googleId: input.googleId,
       profilePicture: input.profilePicture,
       emailVerified: input.emailVerified,
       isActive: true,
+      kycStatus: 'PENDING',
       createdAt: now,
       updatedAt: now,
     };
@@ -61,7 +63,7 @@ export class InMemoryInvestorAuthRepository implements InvestorAuthRepositoryPor
     return user;
   }
 
-  async updateUser(id: string, patch: Partial<InvestorUser>): Promise<InvestorUser> {
+  async updateUser(id: number, patch: Partial<InvestorUser>): Promise<InvestorUser> {
     const existing = this.users.get(id);
     if (!existing) {
       throw new Error('User not found');
