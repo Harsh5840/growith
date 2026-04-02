@@ -9,6 +9,7 @@ export interface AuthUserPayload {
   fullName: string;
   profilePicture?: string;
   emailVerified: boolean;
+  kycStatus: string;
 }
 
 export interface AuthResponse {
