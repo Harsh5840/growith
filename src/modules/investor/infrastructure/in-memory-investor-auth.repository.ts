@@ -31,6 +31,7 @@ export class InMemoryInvestorAuthRepository implements InvestorAuthRepositoryPor
       profilePicture: input.profilePicture,
       emailVerified: false,
       isActive: true,
+      kycStatus: 'PENDING',
       createdAt: now,
       updatedAt: now,
     };
@@ -49,6 +50,7 @@ export class InMemoryInvestorAuthRepository implements InvestorAuthRepositoryPor
       profilePicture: input.profilePicture,
       emailVerified: input.emailVerified,
       isActive: true,
+      kycStatus: 'PENDING',
       createdAt: now,
       updatedAt: now,
     };
