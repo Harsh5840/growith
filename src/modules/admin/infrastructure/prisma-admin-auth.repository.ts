@@ -26,13 +26,13 @@ export class PrismaAdminAuthRepository implements AdminAuthRepositoryPort {
     });
   }
 
-  async findById(id: string): Promise<AdminUser | null> {
+  async findById(id: number): Promise<AdminUser | null> {
     return prisma.adminUser.findUnique({
       where: { id },
     });
   }
 
-  async updateAdmin(id: string, data: Partial<AdminUser>): Promise<AdminUser> {
+  async updateAdmin(id: number, data: Partial<AdminUser>): Promise<AdminUser> {
     return prisma.adminUser.update({
       where: { id },
       data,
@@ -63,7 +63,7 @@ export class PrismaAdminAuthRepository implements AdminAuthRepositoryPort {
     });
   }
 
-  async findInvestorById(id: string): Promise<InvestorAuthUser | null> {
+  async findInvestorById(id: number): Promise<InvestorAuthUser | null> {
     return prisma.investorAuthUser.findUnique({
       where: { id },
     });
@@ -75,14 +75,14 @@ export class PrismaAdminAuthRepository implements AdminAuthRepositoryPort {
     });
   }
 
-  async updateInvestor(id: string, data: Partial<InvestorAuthUser>): Promise<InvestorAuthUser> {
+  async updateInvestor(id: number, data: Partial<InvestorAuthUser>): Promise<InvestorAuthUser> {
     return prisma.investorAuthUser.update({
       where: { id },
       data,
     });
   }
 
-  async deleteInvestor(id: string): Promise<void> {
+  async deleteInvestor(id: number): Promise<void> {
     await prisma.investorAuthUser.delete({
       where: { id },
     });

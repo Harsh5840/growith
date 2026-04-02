@@ -233,7 +233,7 @@ export class InvestorAuthService implements InvestorAuthUseCasePort {
     return this.jwtTokenService.generateTokens(user.id, user.email);
   }
 
-  async me(userId: string): Promise<AuthUserPayload> {
+  async me(userId: number): Promise<AuthUserPayload> {
     const user = await this.repository.findById(userId);
     if (!user || !user.isActive) {
       throw new HttpError(401, 'User account not found or deactivated');
@@ -269,7 +269,7 @@ export class InvestorAuthService implements InvestorAuthUseCasePort {
 
     await emailAdapter.sendEmail({
       to: result.email,
-      subject: 'Password Reset Code - ShivAI',
+      subject: 'Password Reset Code - Growith',
       text: `Your password reset code is: ${code}\nThis code will expire in 15 minutes.`,
       html: `
         <div style="font-family: sans-serif; padding: 20px;">
@@ -343,11 +343,11 @@ export class InvestorAuthService implements InvestorAuthUseCasePort {
 
     await emailAdapter.sendEmail({
       to: result.email,
-      subject: 'Verify Your Email - ShivAI',
+      subject: 'Verify Your Email - Growith',
       text: `Your email verification code is: ${code}\nThis code will expire in 15 minutes.`,
       html: `
         <div style="font-family: sans-serif; padding: 20px;">
-          <h2>Welcome to ShivAI!</h2>
+          <h2>Welcome to Growith!</h2>
           <p>Please use the verification code below to confirm your email address:</p>
           <h1 style="color: #10B981; letter-spacing: 2px; padding: 10px; background: #f3f4f6; display: inline-block; border-radius: 4px;">${code}</h1>
           <p>This code will expire in 15 minutes.</p>
@@ -386,7 +386,7 @@ export class InvestorAuthService implements InvestorAuthUseCasePort {
 
   private buildAuthResponse(
     user: {
-      id: string;
+      id: number;
       email: string;
       fullName: string;
       profilePicture?: string;

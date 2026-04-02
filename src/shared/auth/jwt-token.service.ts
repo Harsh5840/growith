@@ -2,14 +2,14 @@ import jwt, { SignOptions } from 'jsonwebtoken';
 import { HttpError } from '../errors/http-error';
 
 export interface JwtPayload {
-  userId: string;
+  userId: number;
   email: string;
   type: 'access' | 'refresh';
   role: 'investor' | 'admin';
 }
 
 export class JwtTokenService {
-  generateTokens(userId: string, email: string, role: 'investor' | 'admin' = 'investor'): { accessToken: string; refreshToken: string } {
+  generateTokens(userId: number, email: string, role: 'investor' | 'admin' = 'investor'): { accessToken: string; refreshToken: string } {
     const jwtSecret = process.env.JWT_SECRET;
     if (!jwtSecret) {
       throw new HttpError(500, 'JWT_SECRET is not configured');

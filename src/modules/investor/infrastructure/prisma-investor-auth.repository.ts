@@ -10,7 +10,7 @@ import { getPrismaClient } from '../../../shared/database/prisma.service';
 export class PrismaInvestorAuthRepository implements InvestorAuthRepositoryPort {
   private readonly prisma = getPrismaClient();
 
-  async findById(id: string): Promise<InvestorUser | null> {
+  async findById(id: number): Promise<InvestorUser | null> {
     const user = await this.prisma.investorAuthUser.findUnique({ where: { id } });
     return user ? this.toDomain(user) : null;
   }
@@ -49,7 +49,7 @@ export class PrismaInvestorAuthRepository implements InvestorAuthRepositoryPort 
     return this.toDomain(user);
   }
 
-  async updateUser(id: string, patch: Partial<InvestorUser>): Promise<InvestorUser> {
+  async updateUser(id: number, patch: Partial<InvestorUser>): Promise<InvestorUser> {
     const data: Prisma.InvestorAuthUserUpdateInput = {
       email: patch.email,
       fullName: patch.fullName,
@@ -63,6 +63,7 @@ export class PrismaInvestorAuthRepository implements InvestorAuthRepositoryPort 
       emailVerificationCode: patch.emailVerificationCode,
       emailVerificationExpires: patch.emailVerificationExpires,
       lastLoginAt: patch.lastLoginAt,
+      kycStatus: patch.kycStatus,
     };
 
     const user = await this.prisma.investorAuthUser.update({
@@ -134,7 +135,7 @@ export class PrismaInvestorAuthRepository implements InvestorAuthRepositoryPort 
   }
 
   private toDomain(user: {
-    id: string;
+    id: number;
     email: string;
     fullName: string;
     passwordHash: string | null;
@@ -147,6 +148,7 @@ export class PrismaInvestorAuthRepository implements InvestorAuthRepositoryPort 
     emailVerificationCode: string | null;
     emailVerificationExpires: Date | null;
     lastLoginAt: Date | null;
+    kycStatus: string;
     createdAt: Date;
     updatedAt: Date;
   }): InvestorUser {
@@ -164,6 +166,7 @@ export class PrismaInvestorAuthRepository implements InvestorAuthRepositoryPort 
       emailVerificationCode: user.emailVerificationCode ?? undefined,
       emailVerificationExpires: user.emailVerificationExpires ?? undefined,
       lastLoginAt: user.lastLoginAt ?? undefined,
+      kycStatus: user.kycStatus,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
     };

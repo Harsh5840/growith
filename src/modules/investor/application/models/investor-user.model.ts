@@ -1,5 +1,5 @@
 export interface InvestorUser {
-  id: string;
+  id: number;
   email: string;
   fullName: string;
   passwordHash?: string;
@@ -12,6 +12,7 @@ export interface InvestorUser {
   emailVerificationCode?: string;
   emailVerificationExpires?: Date;
   lastLoginAt?: Date;
+  kycStatus: string;
   createdAt: Date;
   updatedAt: Date;
 }

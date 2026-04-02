@@ -40,10 +40,15 @@ export const createAdminRouter = (
 ) => {
   const router = Router();
 
+  // GET    /admin/users      → List all investors
   router.get('/users', authenticateAdmin, adminAuthController.listUsers);
+  // GET    /admin/users/:id  → Get investor by ID
   router.get('/users/:id', authenticateAdmin, adminAuthController.getUserById);
-  router.post('/users/create', authenticateAdmin, validate(adminCreateUserSchema), adminAuthController.createUser);
-  router.patch('/users/:id/edit', authenticateAdmin, validate(adminEditUserSchema), adminAuthController.editUser);
+  // POST   /admin/users      → Create investor
+  router.post('/users', authenticateAdmin, validate(adminCreateUserSchema), adminAuthController.createUser);
+  // PATCH  /admin/users/:id  → Edit investor
+  router.patch('/users/:id', authenticateAdmin, validate(adminEditUserSchema), adminAuthController.editUser);
+  // DELETE /admin/users/:id  → Delete investor
   router.delete('/users/:id', authenticateAdmin, adminAuthController.deleteUser);
 
   return router;

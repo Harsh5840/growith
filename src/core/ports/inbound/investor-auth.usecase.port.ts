@@ -17,7 +17,7 @@ export interface InvestorAuthUseCasePort {
   googleAuth(input: GoogleAuthRequestDto): Promise<AuthResponse>;
   getGoogleAuthUrl(): Promise<string>;
   refreshToken(input: RefreshTokenRequestDto): Promise<{ accessToken: string; refreshToken: string }>;
-  me(userId: string): Promise<AuthResponse['user']>;
+  me(userId: number): Promise<AuthResponse['user']>;
   sendPasswordResetEmail(email: string): Promise<void>;
   verifyForgotPasswordCode(input: VerifyForgotPasswordCodeDto): Promise<{ success: boolean; message: string }>;
   resetPassword(input: ResetPasswordRequestDto): Promise<void>;

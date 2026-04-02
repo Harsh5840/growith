@@ -90,7 +90,11 @@ export class AdminAuthController {
 
   getUserById = async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
-      const { id } = req.params;
+      const id = parseInt(req.params.id, 10);
+      if (isNaN(id)) {
+        res.status(400).json({ success: false, statusCode: 400, message: 'Invalid user ID' });
+        return;
+      }
       const user = await this.adminAuthService.getUserById(id);
       res.json(successResponse(200, 'User retrieved successfully', { user }));
     } catch (error) {
@@ -100,7 +104,11 @@ export class AdminAuthController {
 
   editUser = async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
-      const { id } = req.params;
+      const id = parseInt(req.params.id, 10);
+      if (isNaN(id)) {
+        res.status(400).json({ success: false, statusCode: 400, message: 'Invalid user ID' });
+        return;
+      }
       const input = req.body as AdminEditUserDto;
       await this.adminAuthService.editUser(id, input);
       res.json(successResponse(200, 'User updated successfully', null));
@@ -111,7 +119,11 @@ export class AdminAuthController {
 
   deleteUser = async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
-      const { id } = req.params;
+      const id = parseInt(req.params.id, 10);
+      if (isNaN(id)) {
+        res.status(400).json({ success: false, statusCode: 400, message: 'Invalid user ID' });
+        return;
+      }
       await this.adminAuthService.deleteUser(id);
       res.json(successResponse(200, 'User deleted successfully', null));
     } catch (error) {
