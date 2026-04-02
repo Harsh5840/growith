@@ -1,9 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import {
-  EmailVerificationCodeIssueResult,
-  ForgotPasswordCodeIssueResult,
-  InvestorAuthRepositoryPort,
-} from '../../../core/ports/outbound/investor-auth.repository.port';
+import { InvestorAuthRepositoryPort } from '../../../core/ports/outbound/investor-auth.repository.port';
 import { CreateUserInput, InvestorUser } from '../application/models/investor-user.model';
 
 @Injectable()
@@ -35,7 +31,6 @@ export class InMemoryInvestorAuthRepository implements InvestorAuthRepositoryPor
       profilePicture: input.profilePicture,
       emailVerified: false,
       isActive: true,
-      kycStatus: 'PENDING',
       createdAt: now,
       updatedAt: now,
     };
@@ -54,7 +49,6 @@ export class InMemoryInvestorAuthRepository implements InvestorAuthRepositoryPor
       profilePicture: input.profilePicture,
       emailVerified: input.emailVerified,
       isActive: true,
-      kycStatus: 'PENDING',
       createdAt: now,
       updatedAt: now,
     };
@@ -79,45 +73,45 @@ export class InMemoryInvestorAuthRepository implements InvestorAuthRepositoryPor
     return updated;
   }
 
-  async issueForgotPasswordCode(email: string, code: string, expiresAt: Date): Promise<ForgotPasswordCodeIssueResult> {
-    const normalizedEmail = email.toLowerCase();
-    const user = await this.findByEmail(normalizedEmail);
-    if (!user) {
-      return { status: 'not-found', email: normalizedEmail };
+  async setForgotPasswordCodeIfNotActive(id: number, code: string, expiresAt: Date): Promise<boolean> {
+    const existing = this.users.get(id);
+    if (!existing) {
+      throw new Error('User not found');
     }
 
-    if (user.forgotPasswordCode && user.forgotPasswordExpires && user.forgotPasswordExpires > new Date()) {
-      return { status: 'already-active', email: normalizedEmail };
+    if (existing.forgotPasswordExpires && existing.forgotPasswordExpires > new Date()) {
+      return false;
     }
 
-    await this.updateUser(user.id, {
+    const updated: InvestorUser = {
+      ...existing,
       forgotPasswordCode: code,
       forgotPasswordExpires: expiresAt,
-    });
+      updatedAt: new Date(),
+    };
 
-    return { status: 'issued', email: normalizedEmail };
+    this.users.set(id, updated);
+    return true;
   }
 
-  async issueEmailVerificationCode(email: string, code: string, expiresAt: Date): Promise<EmailVerificationCodeIssueResult> {
-    const normalizedEmail = email.toLowerCase();
-    const user = await this.findByEmail(normalizedEmail);
-    if (!user) {
-      return { status: 'not-found', email: normalizedEmail };
+  async setEmailVerificationCodeIfNotActive(id: number, code: string, expiresAt: Date): Promise<boolean> {
+    const existing = this.users.get(id);
+    if (!existing) {
+      throw new Error('User not found');
     }
 
-    if (user.emailVerified) {
-      return { status: 'already-verified', email: normalizedEmail };
+    if (existing.emailVerificationExpires && existing.emailVerificationExpires > new Date()) {
+      return false;
     }
 
-    if (user.emailVerificationCode && user.emailVerificationExpires && user.emailVerificationExpires > new Date()) {
-      return { status: 'already-active', email: normalizedEmail };
-    }
-
-    await this.updateUser(user.id, {
+    const updated: InvestorUser = {
+      ...existing,
       emailVerificationCode: code,
       emailVerificationExpires: expiresAt,
-    });
+      updatedAt: new Date(),
+    };
 
-    return { status: 'issued', email: normalizedEmail };
+    this.users.set(id, updated);
+    return true;
   }
 }
