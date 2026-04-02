@@ -1,6 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { randomUUID } from 'crypto';
-import { InvestorAuthRepositoryPort } from '../../../core/ports/outbound/investor-auth.repository.port';
+import {
+  EmailVerificationCodeIssueResult,
+  ForgotPasswordCodeIssueResult,
+  InvestorAuthRepositoryPort,
+} from '../../../core/ports/outbound/investor-auth.repository.port';
 import { CreateUserInput, InvestorUser } from '../application/models/investor-user.model';
 
 @Injectable()
@@ -71,5 +75,47 @@ export class InMemoryInvestorAuthRepository implements InvestorAuthRepositoryPor
 
     this.users.set(id, updated);
     return updated;
+  }
+
+  async issueForgotPasswordCode(email: string, code: string, expiresAt: Date): Promise<ForgotPasswordCodeIssueResult> {
+    const normalizedEmail = email.toLowerCase();
+    const user = await this.findByEmail(normalizedEmail);
+    if (!user) {
+      return { status: 'not-found', email: normalizedEmail };
+    }
+
+    if (user.forgotPasswordCode && user.forgotPasswordExpires && user.forgotPasswordExpires > new Date()) {
+      return { status: 'already-active', email: normalizedEmail };
+    }
+
+    await this.updateUser(user.id, {
+      forgotPasswordCode: code,
+      forgotPasswordExpires: expiresAt,
+    });
+
+    return { status: 'issued', email: normalizedEmail };
+  }
+
+  async issueEmailVerificationCode(email: string, code: string, expiresAt: Date): Promise<EmailVerificationCodeIssueResult> {
+    const normalizedEmail = email.toLowerCase();
+    const user = await this.findByEmail(normalizedEmail);
+    if (!user) {
+      return { status: 'not-found', email: normalizedEmail };
+    }
+
+    if (user.emailVerified) {
+      return { status: 'already-verified', email: normalizedEmail };
+    }
+
+    if (user.emailVerificationCode && user.emailVerificationExpires && user.emailVerificationExpires > new Date()) {
+      return { status: 'already-active', email: normalizedEmail };
+    }
+
+    await this.updateUser(user.id, {
+      emailVerificationCode: code,
+      emailVerificationExpires: expiresAt,
+    });
+
+    return { status: 'issued', email: normalizedEmail };
   }
 }

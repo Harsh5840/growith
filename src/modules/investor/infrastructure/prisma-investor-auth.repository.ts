@@ -1,5 +1,9 @@
 import { Prisma } from '@prisma/client';
-import { InvestorAuthRepositoryPort } from '../../../core/ports/outbound/investor-auth.repository.port';
+import {
+  EmailVerificationCodeIssueResult,
+  ForgotPasswordCodeIssueResult,
+  InvestorAuthRepositoryPort,
+} from '../../../core/ports/outbound/investor-auth.repository.port';
 import { CreateUserInput, InvestorUser } from '../application/models/investor-user.model';
 import { getPrismaClient } from '../../../shared/database/prisma.service';
 
@@ -67,6 +71,66 @@ export class PrismaInvestorAuthRepository implements InvestorAuthRepositoryPort 
     });
 
     return this.toDomain(user);
+  }
+
+  async issueForgotPasswordCode(email: string, code: string, expiresAt: Date): Promise<ForgotPasswordCodeIssueResult> {
+    const normalizedEmail = email.toLowerCase();
+
+    const rows = await this.prisma.$queryRaw<Array<{ status: 'issued' | 'already-active' | 'not-found' }>>`
+      WITH locked_user AS (
+        SELECT "id", "forgotPasswordExpires"
+        FROM "InvestorAuthUser"
+        WHERE "email" = ${normalizedEmail}
+        FOR UPDATE
+      ),
+      updated AS (
+        UPDATE "InvestorAuthUser" u
+        SET "forgotPasswordCode" = ${code},
+            "forgotPasswordExpires" = ${expiresAt}
+        FROM locked_user lu
+        WHERE u."id" = lu."id"
+          AND (lu."forgotPasswordExpires" IS NULL OR lu."forgotPasswordExpires" <= NOW())
+        RETURNING u."id"
+      )
+      SELECT CASE
+        WHEN NOT EXISTS (SELECT 1 FROM locked_user) THEN 'not-found'
+        WHEN EXISTS (SELECT 1 FROM updated) THEN 'issued'
+        ELSE 'already-active'
+      END AS status
+    `;
+
+    return { status: rows[0]?.status ?? 'not-found', email: normalizedEmail };
+  }
+
+  async issueEmailVerificationCode(email: string, code: string, expiresAt: Date): Promise<EmailVerificationCodeIssueResult> {
+    const normalizedEmail = email.toLowerCase();
+
+    const rows = await this.prisma.$queryRaw<Array<{ status: 'issued' | 'already-active' | 'already-verified' | 'not-found' }>>`
+      WITH locked_user AS (
+        SELECT "id", "emailVerified", "emailVerificationExpires"
+        FROM "InvestorAuthUser"
+        WHERE "email" = ${normalizedEmail}
+        FOR UPDATE
+      ),
+      updated AS (
+        UPDATE "InvestorAuthUser" u
+        SET "emailVerificationCode" = ${code},
+            "emailVerificationExpires" = ${expiresAt}
+        FROM locked_user lu
+        WHERE u."id" = lu."id"
+          AND lu."emailVerified" = false
+          AND (lu."emailVerificationExpires" IS NULL OR lu."emailVerificationExpires" <= NOW())
+        RETURNING u."id"
+      )
+      SELECT CASE
+        WHEN NOT EXISTS (SELECT 1 FROM locked_user) THEN 'not-found'
+        WHEN EXISTS (SELECT 1 FROM updated) THEN 'issued'
+        WHEN EXISTS (SELECT 1 FROM locked_user WHERE "emailVerified" = true) THEN 'already-verified'
+        ELSE 'already-active'
+      END AS status
+    `;
+
+    return { status: rows[0]?.status ?? 'not-found', email: normalizedEmail };
   }
 
   private toDomain(user: {

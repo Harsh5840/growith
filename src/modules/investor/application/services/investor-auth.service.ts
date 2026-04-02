@@ -16,7 +16,6 @@ import {
 import { AuthResponse, AuthUserPayload, ValidateEmailResponse } from '../models/auth-response.model';
 import { HttpError } from '../../../../shared/errors/http-error';
 import { emailAdapter } from '../../../../shared/notifications/email.adapter';
-import * as crypto from 'crypto';
 
 export class InvestorAuthService implements InvestorAuthUseCasePort {
   private readonly googleClient: OAuth2Client;
@@ -47,7 +46,6 @@ export class InvestorAuthService implements InvestorAuthUseCasePort {
       password: passwordHash,
     });
 
-    // Automatically trigger the email verification code dispatch
     await this.sendEmailVerification(user.email);
 
     const tokens = this.jwtTokenService.generateTokens(user.id, user.email);
@@ -255,22 +253,22 @@ export class InvestorAuthService implements InvestorAuthUseCasePort {
   }
 
   async sendPasswordResetEmail(email: string): Promise<void> {
-    const user = await this.repository.findByEmail(email.toLowerCase());
-    if (!user) {
-      throw new HttpError(404, 'No account found with this email');
-    }
-
     const code = this.generateCode();
     const expires = new Date();
     expires.setMinutes(expires.getMinutes() + 15);
 
-    await this.repository.updateUser(user.id, {
-      forgotPasswordCode: code,
-      forgotPasswordExpires: expires,
-    });
+    const result = await this.repository.issueForgotPasswordCode(email, code, expires);
+
+    if (result.status === 'not-found') {
+      throw new HttpError(404, 'No account found with this email');
+    }
+
+    if (result.status !== 'issued') {
+      return;
+    }
 
     await emailAdapter.sendEmail({
-      to: email,
+      to: result.email,
       subject: 'Password Reset Code - ShivAI',
       text: `Your password reset code is: ${code}\nThis code will expire in 15 minutes.`,
       html: `
@@ -316,35 +314,35 @@ export class InvestorAuthService implements InvestorAuthUseCasePort {
 
     const passwordHash = await bcrypt.hash(input.newPassword, Number(process.env.BCRYPT_SALT_ROUNDS || 12));
     
-    await this.repository.updateUser(user.id, { 
+    await this.repository.updateUser(user.id, {
       passwordHash,
-      emailVerified: true, // Implicitly verify email on successful reset
+      emailVerified: true,
       forgotPasswordCode: null as any,
       forgotPasswordExpires: null as any,
     });
   }
 
   async sendEmailVerification(email: string): Promise<void> {
-    const user = await this.repository.findByEmail(email.toLowerCase());
-    if (!user) {
-      throw new HttpError(404, 'No account found with this email');
-    }
-
-    if (user.emailVerified) {
-      throw new HttpError(400, 'Email is already verified');
-    }
-
     const code = this.generateCode();
     const expires = new Date();
     expires.setMinutes(expires.getMinutes() + 15);
 
-    await this.repository.updateUser(user.id, {
-      emailVerificationCode: code,
-      emailVerificationExpires: expires,
-    });
+    const result = await this.repository.issueEmailVerificationCode(email, code, expires);
+
+    if (result.status === 'not-found') {
+      throw new HttpError(404, 'No account found with this email');
+    }
+
+    if (result.status === 'already-verified') {
+      throw new HttpError(400, 'Email is already verified');
+    }
+
+    if (result.status !== 'issued') {
+      return;
+    }
 
     await emailAdapter.sendEmail({
-      to: email,
+      to: result.email,
       subject: 'Verify Your Email - ShivAI',
       text: `Your email verification code is: ${code}\nThis code will expire in 15 minutes.`,
       html: `
