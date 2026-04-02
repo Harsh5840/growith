@@ -11,7 +11,7 @@ export class KycController {
     try {
       const userId = req.user!.userId;
       const files = req.files as { [fieldname: string]: Express.Multer.File[] } | undefined;
-      
+
       const data: SubmitKycRequestDto = {
         fullLegalName: req.body.fullLegalName,
         dateOfBirth: req.body.dateOfBirth,
@@ -21,13 +21,16 @@ export class KycController {
         stateProvince: req.body.stateProvince,
         phoneNumber: req.body.phoneNumber,
         streetAddress: req.body.streetAddress,
-        primaryDocumentType: req.body.primaryDocumentType,
+        aadhaarNumber: req.body.aadhaarNumber,
+        panNumber: req.body.panNumber,
         supportingDocName: req.body.supportingDocName,
+        termsAgreed: req.body.termsAgreed === 'true' || req.body.termsAgreed === true,
       };
 
       const uploadedFiles = {
-        primaryDocFront: files?.primaryDocFront?.[0],
-        primaryDocBack: files?.primaryDocBack?.[0],
+        aadhaarFront: files?.aadhaarFront?.[0],
+        aadhaarBack: files?.aadhaarBack?.[0],
+        panFront: files?.panFront?.[0],
         supportingDoc: files?.supportingDoc?.[0],
       };
 

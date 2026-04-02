@@ -4,8 +4,9 @@ import { HttpError } from '../../../../shared/errors/http-error';
 import { SubmitKycRequestDto, KycStatusResponseDto, KycWithUserResponseDto } from '../dtos/kyc.dto';
 
 export interface KycUploadedFiles {
-  primaryDocFront?: Express.Multer.File;
-  primaryDocBack?: Express.Multer.File;
+  aadhaarFront?: Express.Multer.File;
+  aadhaarBack?: Express.Multer.File;
+  panFront?: Express.Multer.File;
   supportingDoc?: Express.Multer.File;
 }
 
@@ -29,12 +30,10 @@ export class KycService {
 
     // If rejected, allow re-submission by deleting old record
     if (existingKyc && existingKyc.status === 'REJECTED') {
-      // Clean up old S3 files
       try {
-        await this.s3Adapter.deleteFile(existingKyc.primaryDocFrontUrl);
-        if (existingKyc.primaryDocBackUrl) {
-          await this.s3Adapter.deleteFile(existingKyc.primaryDocBackUrl);
-        }
+        await this.s3Adapter.deleteFile(existingKyc.aadhaarFrontUrl);
+        await this.s3Adapter.deleteFile(existingKyc.aadhaarBackUrl);
+        await this.s3Adapter.deleteFile(existingKyc.panFrontUrl);
         if (existingKyc.supportingDocUrl) {
           await this.s3Adapter.deleteFile(existingKyc.supportingDocUrl);
         }
@@ -48,25 +47,34 @@ export class KycService {
       throw new HttpError(400, 'KYC is already submitted and pending review');
     }
 
-    // Validate required files
-    if (!files.primaryDocFront) {
-      throw new HttpError(400, 'Primary document front side is required');
+    // T&C check
+    if (!data.termsAgreed) {
+      throw new HttpError(400, 'You must agree to the Terms & Conditions');
     }
 
-    if (data.primaryDocumentType === 'AADHAAR' && !files.primaryDocBack) {
+    // Validate required files
+    if (!files.aadhaarFront) {
+      throw new HttpError(400, 'Aadhaar card front side is required');
+    }
+    if (!files.aadhaarBack) {
       throw new HttpError(400, 'Aadhaar card back side is required');
     }
-
-    // Upload files to S3
-    const frontKey = S3Adapter.generateKycKey(userId, data.primaryDocumentType, 'front', files.primaryDocFront.originalname);
-    await this.s3Adapter.uploadFile(frontKey, files.primaryDocFront.buffer, files.primaryDocFront.mimetype);
-
-    let backKey: string | null = null;
-    if (files.primaryDocBack) {
-      backKey = S3Adapter.generateKycKey(userId, data.primaryDocumentType, 'back', files.primaryDocBack.originalname);
-      await this.s3Adapter.uploadFile(backKey, files.primaryDocBack.buffer, files.primaryDocBack.mimetype);
+    if (!files.panFront) {
+      throw new HttpError(400, 'PAN card front side is required');
     }
 
+    // Upload Aadhaar files to S3
+    const aadhaarFrontKey = S3Adapter.generateKycKey(userId, 'aadhaar', 'front', files.aadhaarFront.originalname);
+    await this.s3Adapter.uploadFile(aadhaarFrontKey, files.aadhaarFront.buffer, files.aadhaarFront.mimetype);
+
+    const aadhaarBackKey = S3Adapter.generateKycKey(userId, 'aadhaar', 'back', files.aadhaarBack.originalname);
+    await this.s3Adapter.uploadFile(aadhaarBackKey, files.aadhaarBack.buffer, files.aadhaarBack.mimetype);
+
+    // Upload PAN file to S3
+    const panFrontKey = S3Adapter.generateKycKey(userId, 'pan', 'front', files.panFront.originalname);
+    await this.s3Adapter.uploadFile(panFrontKey, files.panFront.buffer, files.panFront.mimetype);
+
+    // Upload supporting document (optional)
     let supportingDocKey: string | null = null;
     if (files.supportingDoc) {
       supportingDocKey = S3Adapter.generateKycKey(userId, 'supporting', 'doc', files.supportingDoc.originalname);
@@ -85,11 +93,14 @@ export class KycService {
         stateProvince: data.stateProvince,
         phoneNumber: data.phoneNumber,
         streetAddress: data.streetAddress,
-        primaryDocumentType: data.primaryDocumentType,
-        primaryDocFrontUrl: frontKey,
-        primaryDocBackUrl: backKey,
+        aadhaarNumber: data.aadhaarNumber,
+        aadhaarFrontUrl: aadhaarFrontKey,
+        aadhaarBackUrl: aadhaarBackKey,
+        panNumber: data.panNumber,
+        panFrontUrl: panFrontKey,
         supportingDocName: data.supportingDocName || null,
         supportingDocUrl: supportingDocKey,
+        termsAgreedAt: new Date(),
         status: 'PENDING',
       },
     });
@@ -105,7 +116,7 @@ export class KycService {
 
   async getKycStatus(userId: number): Promise<KycStatusResponseDto> {
     const kyc = await this.prisma.investorKyc.findUnique({ where: { userId } });
-    
+
     if (!kyc) {
       return { status: 'NOT_SUBMITTED' };
     }
@@ -128,8 +139,9 @@ export class KycService {
     }
 
     // Generate presigned URLs for documents
-    const primaryDocFrontUrl = await this.s3Adapter.getSignedUrl(kyc.primaryDocFrontUrl);
-    const primaryDocBackUrl = kyc.primaryDocBackUrl ? await this.s3Adapter.getSignedUrl(kyc.primaryDocBackUrl) : null;
+    const aadhaarFrontUrl = await this.s3Adapter.getSignedUrl(kyc.aadhaarFrontUrl);
+    const aadhaarBackUrl = await this.s3Adapter.getSignedUrl(kyc.aadhaarBackUrl);
+    const panFrontUrl = await this.s3Adapter.getSignedUrl(kyc.panFrontUrl);
     const supportingDocUrl = kyc.supportingDocUrl ? await this.s3Adapter.getSignedUrl(kyc.supportingDocUrl) : null;
 
     return {
@@ -143,11 +155,14 @@ export class KycService {
         stateProvince: kyc.stateProvince,
         phoneNumber: kyc.phoneNumber,
         streetAddress: kyc.streetAddress,
-        primaryDocumentType: kyc.primaryDocumentType,
-        primaryDocFrontUrl,
-        primaryDocBackUrl,
+        aadhaarNumber: kyc.aadhaarNumber,
+        aadhaarFrontUrl,
+        aadhaarBackUrl,
+        panNumber: kyc.panNumber,
+        panFrontUrl,
         supportingDocName: kyc.supportingDocName,
         supportingDocUrl,
+        termsAgreedAt: kyc.termsAgreedAt,
         status: kyc.status,
         rejectionReason: kyc.rejectionReason,
         reviewedAt: kyc.reviewedAt,

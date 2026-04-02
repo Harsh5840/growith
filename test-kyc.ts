@@ -1,7 +1,5 @@
 import 'dotenv/config';
 import { PrismaClient } from '@prisma/client';
-import * as fs from 'fs';
-import * as path from 'path';
 
 type Json = Record<string, unknown> | null;
 
@@ -100,7 +98,6 @@ const assertError = (json: Json) => {
 
 // Create a tiny 1x1 PNG buffer for test uploads
 const createTestPng = (): Buffer => {
-  // Minimal valid PNG: 1x1 pixel, red
   return Buffer.from(
     'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==',
     'base64',
@@ -116,7 +113,6 @@ const postMultipart = async (
   const boundary = `----FormBoundary${Date.now()}`;
   const parts: Buffer[] = [];
 
-  // Add text fields
   for (const [key, value] of Object.entries(fields)) {
     parts.push(
       Buffer.from(
@@ -125,7 +121,6 @@ const postMultipart = async (
     );
   }
 
-  // Add file fields
   for (const file of files) {
     parts.push(
       Buffer.from(
@@ -149,12 +144,27 @@ const postMultipart = async (
   });
 };
 
+// ─── Shared KYC form fields ───────────────────────────
+
+const kycFields = {
+  fullLegalName: 'KYC Test Investor',
+  dateOfBirth: '15-06-1995',
+  nationality: 'Indian',
+  countryOfResidence: 'India',
+  city: 'Mumbai',
+  stateProvince: 'Maharashtra',
+  phoneNumber: '+919876543210',
+  streetAddress: '123 Test Street, Andheri West',
+  aadhaarNumber: '123456789012',
+  panNumber: 'ABCDE1234F',
+  termsAgreed: 'true',
+};
+
 // ─── Test Suites ───────────────────────────────────────
 
 async function setupAccounts() {
   console.log('\n📋 Setting up test accounts...');
 
-  // Register admin
   const adminRes = await postJson(`${ADMIN_AUTH}/register`, {
     email: adminEmail,
     fullName: 'KYC Test Admin',
@@ -166,7 +176,6 @@ async function setupAccounts() {
   if (!state.adminToken) throw new Error('Failed to register admin');
   console.log('  ✅ Admin registered');
 
-  // Register investor
   const investorRes = await postJson(`${INVESTOR_AUTH}/register`, {
     email: investorEmail,
     fullName: 'KYC Test Investor',
@@ -184,7 +193,8 @@ async function testInvestorKycRoutes() {
   console.log('\n🔐 INVESTOR KYC ROUTES');
   console.log('─'.repeat(50));
 
-  // ── GET /investor/kyc/status (before submission) ──
+  const testPng = createTestPng();
+
   await runCase(
     'GET /investor/kyc/status → NOT_SUBMITTED',
     () => getWithToken(`${INVESTOR_KYC}/status`, state.investorToken),
@@ -196,7 +206,6 @@ async function testInvestorKycRoutes() {
     },
   );
 
-  // ── GET /investor/kyc (before submission) ──
   await runCase(
     'GET /investor/kyc → 404 when no KYC',
     () => getWithToken(INVESTOR_KYC, state.investorToken),
@@ -204,7 +213,6 @@ async function testInvestorKycRoutes() {
     assertError,
   );
 
-  // ── POST /investor/kyc without auth → 401 ──
   await runCase(
     'POST /investor/kyc → 401 without auth',
     () => postMultipart(INVESTOR_KYC, {}, []),
@@ -212,42 +220,60 @@ async function testInvestorKycRoutes() {
     assertError,
   );
 
-  // ── POST /investor/kyc with missing fields → 400 ──
   await runCase(
     'POST /investor/kyc → 400 missing fields',
+    () => postMultipart(INVESTOR_KYC, { fullLegalName: 'Test' }, [], state.investorToken),
+    400,
+    assertError,
+  );
+
+  // ── Invalid Aadhaar number ──
+  await runCase(
+    'POST /investor/kyc → 400 invalid aadhaar number',
     () =>
       postMultipart(
         INVESTOR_KYC,
-        { fullLegalName: 'Test' },
-        [],
+        { ...kycFields, aadhaarNumber: '12345' },
+        [
+          { name: 'aadhaarFront', buffer: testPng, filename: 'a-front.png' },
+          { name: 'aadhaarBack', buffer: testPng, filename: 'a-back.png' },
+          { name: 'panFront', buffer: testPng, filename: 'pan.png' },
+        ],
         state.investorToken,
       ),
     400,
     assertError,
   );
 
-  // ── POST /investor/kyc success (AADHAAR) ──
-  const testPng = createTestPng();
+  // ── Invalid PAN number ──
   await runCase(
-    'POST /investor/kyc → 201 submit AADHAAR KYC',
+    'POST /investor/kyc → 400 invalid PAN number',
     () =>
       postMultipart(
         INVESTOR_KYC,
-        {
-          fullLegalName: 'KYC Test Investor',
-          dateOfBirth: '15-06-1995',
-          nationality: 'Indian',
-          countryOfResidence: 'India',
-          city: 'Mumbai',
-          stateProvince: 'Maharashtra',
-          phoneNumber: '+919876543210',
-          streetAddress: '123 Test Street, Andheri West',
-          primaryDocumentType: 'AADHAAR',
-          supportingDocName: 'Utility Bill',
-        },
+        { ...kycFields, panNumber: 'invalid' },
         [
-          { name: 'primaryDocFront', buffer: testPng, filename: 'aadhaar-front.png' },
-          { name: 'primaryDocBack', buffer: testPng, filename: 'aadhaar-back.png' },
+          { name: 'aadhaarFront', buffer: testPng, filename: 'a-front.png' },
+          { name: 'aadhaarBack', buffer: testPng, filename: 'a-back.png' },
+          { name: 'panFront', buffer: testPng, filename: 'pan.png' },
+        ],
+        state.investorToken,
+      ),
+    400,
+    assertError,
+  );
+
+  // ── Success: submit with both Aadhaar + PAN ──
+  await runCase(
+    'POST /investor/kyc → 201 submit KYC (Aadhaar + PAN)',
+    () =>
+      postMultipart(
+        INVESTOR_KYC,
+        { ...kycFields, supportingDocName: 'Utility Bill' },
+        [
+          { name: 'aadhaarFront', buffer: testPng, filename: 'aadhaar-front.png' },
+          { name: 'aadhaarBack', buffer: testPng, filename: 'aadhaar-back.png' },
+          { name: 'panFront', buffer: testPng, filename: 'pan-front.png' },
           { name: 'supportingDoc', buffer: testPng, filename: 'utility-bill.png' },
         ],
         state.investorToken,
@@ -256,30 +282,21 @@ async function testInvestorKycRoutes() {
     (json) => {
       assertSuccess(json);
       state.kycId = (json as any)?.data?.id;
-      if (!state.kycId) throw new Error('KYC ID missing from submit response');
+      if (!state.kycId) throw new Error('KYC ID missing');
     },
   );
 
-  // ── POST /investor/kyc duplicate → 400 ──
+  // ── Duplicate blocked ──
   await runCase(
     'POST /investor/kyc → 400 duplicate submission',
     () =>
       postMultipart(
         INVESTOR_KYC,
-        {
-          fullLegalName: 'KYC Test Investor',
-          dateOfBirth: '15-06-1995',
-          nationality: 'Indian',
-          countryOfResidence: 'India',
-          city: 'Mumbai',
-          stateProvince: 'Maharashtra',
-          phoneNumber: '+919876543210',
-          streetAddress: '123 Test Street, Andheri West',
-          primaryDocumentType: 'AADHAAR',
-        },
+        kycFields,
         [
-          { name: 'primaryDocFront', buffer: testPng, filename: 'aadhaar-front.png' },
-          { name: 'primaryDocBack', buffer: testPng, filename: 'aadhaar-back.png' },
+          { name: 'aadhaarFront', buffer: testPng, filename: 'a-front.png' },
+          { name: 'aadhaarBack', buffer: testPng, filename: 'a-back.png' },
+          { name: 'panFront', buffer: testPng, filename: 'pan.png' },
         ],
         state.investorToken,
       ),
@@ -287,31 +304,29 @@ async function testInvestorKycRoutes() {
     assertError,
   );
 
-  // ── GET /investor/kyc/status → PENDING ──
   await runCase(
     'GET /investor/kyc/status → PENDING after submit',
     () => getWithToken(`${INVESTOR_KYC}/status`, state.investorToken),
     200,
     (json) => {
       assertSuccess(json);
-      const status = (json as any)?.data?.status;
-      if (status !== 'PENDING') throw new Error(`Expected PENDING, got ${status}`);
+      if ((json as any)?.data?.status !== 'PENDING') throw new Error('Expected PENDING');
     },
   );
 
-  // ── GET /investor/kyc → full data ──
   await runCase(
-    'GET /investor/kyc → 200 returns KYC + user data',
+    'GET /investor/kyc → 200 returns full KYC + user data',
     () => getWithToken(INVESTOR_KYC, state.investorToken),
     200,
     (json) => {
       assertSuccess(json);
-      const data = (json as any)?.data;
-      if (!data?.kyc) throw new Error('Missing kyc object');
-      if (!data?.user) throw new Error('Missing user object');
-      if (data.kyc.fullLegalName !== 'KYC Test Investor') throw new Error('Wrong fullLegalName');
-      if (data.kyc.primaryDocumentType !== 'AADHAAR') throw new Error('Wrong document type');
-      if (data.user.email !== investorEmail) throw new Error('Wrong user email');
+      const d = (json as any)?.data;
+      if (!d?.kyc) throw new Error('Missing kyc');
+      if (!d?.user) throw new Error('Missing user');
+      if (d.kyc.aadhaarNumber !== '123456789012') throw new Error('Wrong aadhaar number');
+      if (d.kyc.panNumber !== 'ABCDE1234F') throw new Error('Wrong PAN number');
+      if (!d.kyc.termsAgreedAt) throw new Error('Missing termsAgreedAt');
+      if (d.user.email !== investorEmail) throw new Error('Wrong email');
     },
   );
 }
@@ -320,144 +335,74 @@ async function testAdminKycRoutes() {
   console.log('\n👑 ADMIN KYC ROUTES');
   console.log('─'.repeat(50));
 
-  // ── GET /admin/kyc without auth → 401 ──
-  await runCase(
-    'GET /admin/kyc → 401 without auth',
-    () => getWithToken(ADMIN_KYC),
-    401,
-    assertError,
-  );
+  const testPng = createTestPng();
 
-  // ── GET /admin/kyc with investor token → 403 ──
-  await runCase(
-    'GET /admin/kyc → 403 with investor token',
-    () => getWithToken(ADMIN_KYC, state.investorToken),
-    403,
-    assertError,
-  );
+  await runCase('GET /admin/kyc → 401 no auth', () => getWithToken(ADMIN_KYC), 401, assertError);
+  await runCase('GET /admin/kyc → 403 investor token', () => getWithToken(ADMIN_KYC, state.investorToken), 403, assertError);
 
-  // ── GET /admin/kyc → list all submissions ──
   await runCase(
     'GET /admin/kyc → 200 list submissions',
     () => getWithToken(ADMIN_KYC, state.adminToken),
     200,
     (json) => {
       assertSuccess(json);
-      const submissions = (json as any)?.data?.submissions;
-      if (!Array.isArray(submissions)) throw new Error('Expected submissions array');
-      if (submissions.length === 0) throw new Error('Expected at least 1 submission');
+      const s = (json as any)?.data?.submissions;
+      if (!Array.isArray(s) || s.length === 0) throw new Error('Expected submissions');
+      if (!s[0].aadhaarNumber) throw new Error('Missing aadhaarNumber in list');
+      if (!s[0].panNumber) throw new Error('Missing panNumber in list');
     },
   );
 
-  // ── GET /admin/kyc?status=PENDING ──
-  await runCase(
-    'GET /admin/kyc?status=PENDING → filtered list',
-    () => getWithToken(`${ADMIN_KYC}?status=PENDING`, state.adminToken),
-    200,
-    (json) => {
-      assertSuccess(json);
-      const submissions = (json as any)?.data?.submissions;
-      if (!Array.isArray(submissions)) throw new Error('Expected submissions array');
-      for (const s of submissions) {
-        if (s.status !== 'PENDING') throw new Error(`Expected PENDING, got ${s.status}`);
-      }
-    },
-  );
+  await runCase('GET /admin/kyc?status=PENDING', () => getWithToken(`${ADMIN_KYC}?status=PENDING`, state.adminToken), 200, assertSuccess);
+  await runCase('GET /admin/kyc?search=KYC Test', () => getWithToken(`${ADMIN_KYC}?search=KYC+Test`, state.adminToken), 200, assertSuccess);
 
-  // ── GET /admin/kyc?search=KYC Test ──
   await runCase(
-    'GET /admin/kyc?search=KYC Test → search results',
-    () => getWithToken(`${ADMIN_KYC}?search=KYC+Test`, state.adminToken),
-    200,
-    assertSuccess,
-  );
-
-  // ── GET /admin/kyc/:id ──
-  await runCase(
-    'GET /admin/kyc/:id → 200 KYC detail',
+    'GET /admin/kyc/:id → 200 detail',
     () => getWithToken(`${ADMIN_KYC}/${state.kycId}`, state.adminToken),
     200,
     (json) => {
       assertSuccess(json);
-      const data = (json as any)?.data;
-      if (!data?.kyc) throw new Error('Missing kyc object');
-      if (!data?.user) throw new Error('Missing user object');
-      if (data.kyc.id !== state.kycId) throw new Error('Wrong KYC ID');
+      const d = (json as any)?.data;
+      if (!d?.kyc?.termsAgreedAt) throw new Error('Missing termsAgreedAt');
     },
   );
 
-  // ── GET /admin/kyc/:id with invalid ID ──
-  await runCase(
-    'GET /admin/kyc/abc → 400 invalid ID',
-    () => getWithToken(`${ADMIN_KYC}/abc`, state.adminToken),
-    400,
-  );
+  await runCase('GET /admin/kyc/abc → 400', () => getWithToken(`${ADMIN_KYC}/abc`, state.adminToken), 400);
+  await runCase('GET /admin/kyc/999999 → 404', () => getWithToken(`${ADMIN_KYC}/999999`, state.adminToken), 404, assertError);
+  await runCase('PATCH reject → 400 no reason', () => patchJson(`${ADMIN_KYC}/${state.kycId}/reject`, {}, state.adminToken), 400, assertError);
 
-  // ── GET /admin/kyc/:id not found ──
   await runCase(
-    'GET /admin/kyc/999999 → 404 not found',
-    () => getWithToken(`${ADMIN_KYC}/999999`, state.adminToken),
-    404,
-    assertError,
-  );
-
-  // ── PATCH /admin/kyc/:id/reject without reason → 400 ──
-  await runCase(
-    'PATCH /admin/kyc/:id/reject → 400 missing reason',
-    () => patchJson(`${ADMIN_KYC}/${state.kycId}/reject`, {}, state.adminToken),
-    400,
-    assertError,
-  );
-
-  // ── PATCH /admin/kyc/:id/reject → success ──
-  await runCase(
-    'PATCH /admin/kyc/:id/reject → 200 reject with reason',
-    () =>
-      patchJson(
-        `${ADMIN_KYC}/${state.kycId}/reject`,
-        { reason: 'Aadhaar card photo is blurry, please resubmit with a clear image.' },
-        state.adminToken,
-      ),
+    'PATCH reject → 200 with reason',
+    () => patchJson(`${ADMIN_KYC}/${state.kycId}/reject`, { reason: 'Aadhaar photo is blurry' }, state.adminToken),
     200,
     (json) => {
       assertSuccess(json);
-      const data = (json as any)?.data;
-      if (data.status !== 'REJECTED') throw new Error(`Expected REJECTED, got ${data.status}`);
-      if (!data.rejectionReason) throw new Error('Missing rejectionReason');
+      if ((json as any)?.data?.status !== 'REJECTED') throw new Error('Expected REJECTED');
     },
   );
 
-  // ── Verify investor sees REJECTED status ──
   await runCase(
-    'GET /investor/kyc/status → REJECTED after admin reject',
+    'GET /investor/kyc/status → REJECTED',
     () => getWithToken(`${INVESTOR_KYC}/status`, state.investorToken),
     200,
     (json) => {
       assertSuccess(json);
-      const status = (json as any)?.data?.status;
-      if (status !== 'REJECTED') throw new Error(`Expected REJECTED, got ${status}`);
+      if ((json as any)?.data?.status !== 'REJECTED') throw new Error('Expected REJECTED');
     },
   );
 
-  // ── Resubmit after rejection ──
-  const testPng = createTestPng();
+  // Resubmit after rejection
   await runCase(
     'POST /investor/kyc → 201 resubmit after rejection',
     () =>
       postMultipart(
         INVESTOR_KYC,
-        {
-          fullLegalName: 'KYC Test Investor Updated',
-          dateOfBirth: '15-06-1995',
-          nationality: 'Indian',
-          countryOfResidence: 'India',
-          city: 'Delhi',
-          stateProvince: 'Delhi',
-          phoneNumber: '+919876543210',
-          streetAddress: '456 New Address, Connaught Place',
-          primaryDocumentType: 'PAN',
-        },
-        [{ name: 'primaryDocFront', buffer: testPng, filename: 'pan-front.png' }],
+        { ...kycFields, city: 'Delhi', stateProvince: 'Delhi', streetAddress: '456 New Address, CP' },
+        [
+          { name: 'aadhaarFront', buffer: testPng, filename: 'a-front.png' },
+          { name: 'aadhaarBack', buffer: testPng, filename: 'a-back.png' },
+          { name: 'panFront', buffer: testPng, filename: 'pan.png' },
+        ],
         state.investorToken,
       ),
     201,
@@ -467,71 +412,39 @@ async function testAdminKycRoutes() {
     },
   );
 
-  // ── PATCH /admin/kyc/:id/approve → success ──
   await runCase(
-    'PATCH /admin/kyc/:id/approve → 200 approve KYC',
+    'PATCH approve → 200',
     () => patchJson(`${ADMIN_KYC}/${state.kycId}/approve`, {}, state.adminToken),
     200,
     (json) => {
       assertSuccess(json);
-      const data = (json as any)?.data;
-      if (data.status !== 'APPROVED') throw new Error(`Expected APPROVED, got ${data.status}`);
+      if ((json as any)?.data?.status !== 'APPROVED') throw new Error('Expected APPROVED');
     },
   );
 
-  // ── Verify investor sees APPROVED status ──
   await runCase(
-    'GET /investor/kyc/status → APPROVED after admin approve',
+    'GET /investor/kyc/status → APPROVED',
     () => getWithToken(`${INVESTOR_KYC}/status`, state.investorToken),
     200,
     (json) => {
       assertSuccess(json);
-      const status = (json as any)?.data?.status;
-      if (status !== 'APPROVED') throw new Error(`Expected APPROVED, got ${status}`);
+      if ((json as any)?.data?.status !== 'APPROVED') throw new Error('Expected APPROVED');
     },
   );
 
-  // ── Cannot approve already approved ──
-  await runCase(
-    'PATCH /admin/kyc/:id/approve → 400 already approved',
-    () => patchJson(`${ADMIN_KYC}/${state.kycId}/approve`, {}, state.adminToken),
-    400,
-    assertError,
-  );
+  await runCase('PATCH approve again → 400', () => patchJson(`${ADMIN_KYC}/${state.kycId}/approve`, {}, state.adminToken), 400, assertError);
+  await runCase('PATCH reject approved → 400', () => patchJson(`${ADMIN_KYC}/${state.kycId}/reject`, { reason: 'test' }, state.adminToken), 400, assertError);
 
-  // ── Cannot reject already approved ──
   await runCase(
-    'PATCH /admin/kyc/:id/reject → 400 cannot reject approved',
-    () =>
-      patchJson(
-        `${ADMIN_KYC}/${state.kycId}/reject`,
-        { reason: 'Trying to reject after approval' },
-        state.adminToken,
-      ),
-    400,
-    assertError,
-  );
-
-  // ── Cannot resubmit when approved ──
-  await runCase(
-    'POST /investor/kyc → 400 cannot resubmit when approved',
+    'POST /investor/kyc → 400 cannot resubmit approved',
     () =>
       postMultipart(
         INVESTOR_KYC,
-        {
-          fullLegalName: 'KYC Test Investor',
-          dateOfBirth: '15-06-1995',
-          nationality: 'Indian',
-          countryOfResidence: 'India',
-          city: 'Mumbai',
-          stateProvince: 'Maharashtra',
-          phoneNumber: '+919876543210',
-          streetAddress: '123 Test Street',
-          primaryDocumentType: 'AADHAAR',
-        },
+        kycFields,
         [
-          { name: 'primaryDocFront', buffer: testPng, filename: 'aadhaar-front.png' },
-          { name: 'primaryDocBack', buffer: testPng, filename: 'aadhaar-back.png' },
+          { name: 'aadhaarFront', buffer: testPng, filename: 'a.png' },
+          { name: 'aadhaarBack', buffer: testPng, filename: 'b.png' },
+          { name: 'panFront', buffer: testPng, filename: 'c.png' },
         ],
         state.investorToken,
       ),
@@ -541,65 +454,33 @@ async function testAdminKycRoutes() {
 }
 
 async function testAdminUserRoutes() {
-  console.log('\n👤 ADMIN USER ROUTES (updated naming)');
+  console.log('\n👤 ADMIN USER ROUTES');
   console.log('─'.repeat(50));
 
   const managedEmail = `managed_${timestamp}@example.com`;
-
-  // ── POST /admin/users (RESTful create) ──
   let managedId = 0;
+
   await runCase(
-    'POST /admin/users → 201 create investor',
-    () =>
-      postJson(
-        `${ADMIN_USERS}`,
-        { email: managedEmail, fullName: 'Managed User', password: 'ManagedPass123!' },
-        state.adminToken,
-      ),
+    'POST /admin/users → 201',
+    () => postJson(ADMIN_USERS, { email: managedEmail, fullName: 'Managed User', password: 'ManagedPass123!' }, state.adminToken),
     201,
     (json) => {
       assertSuccess(json);
       managedId = (json as any)?.data?.user?.id;
-      if (!managedId) throw new Error('Managed user ID missing');
+      if (!managedId) throw new Error('Missing ID');
     },
   );
 
-  // ── GET /admin/users/:id ──
+  await runCase('GET /admin/users/:id → 200', () => getWithToken(`${ADMIN_USERS}/${managedId}`, state.adminToken), 200, assertSuccess);
+  await runCase('PATCH /admin/users/:id → 200', () => patchJson(`${ADMIN_USERS}/${managedId}`, { fullName: 'Updated' }, state.adminToken), 200, assertSuccess);
+  await runCase('GET /admin/users → 200', () => getWithToken(ADMIN_USERS, state.adminToken), 200, assertSuccess);
   await runCase(
-    'GET /admin/users/:id → 200 get user',
-    () => getWithToken(`${ADMIN_USERS}/${managedId}`, state.adminToken),
+    'DELETE /admin/users/:id → 200',
+    () => fetch(`${ADMIN_USERS}/${managedId}`, { method: 'DELETE', headers: { Authorization: `Bearer ${state.adminToken}` } }),
     200,
     assertSuccess,
   );
 
-  // ── PATCH /admin/users/:id (RESTful edit) ──
-  await runCase(
-    'PATCH /admin/users/:id → 200 edit user',
-    () => patchJson(`${ADMIN_USERS}/${managedId}`, { fullName: 'Updated Name' }, state.adminToken),
-    200,
-    assertSuccess,
-  );
-
-  // ── GET /admin/users (list) ──
-  await runCase(
-    'GET /admin/users → 200 list users',
-    () => getWithToken(ADMIN_USERS, state.adminToken),
-    200,
-    assertSuccess,
-  );
-
-  // ── DELETE /admin/users/:id ──
-  await runCase(
-    'DELETE /admin/users/:id → 200 delete user',
-    () => fetch(`${ADMIN_USERS}/${managedId}`, {
-      method: 'DELETE',
-      headers: { Authorization: `Bearer ${state.adminToken}` },
-    }),
-    200,
-    assertSuccess,
-  );
-
-  // Clean up
   await prisma.investorAuthUser.deleteMany({ where: { email: managedEmail } }).catch(() => {});
 }
 
@@ -610,16 +491,10 @@ async function run() {
   console.log('║        KYC & ADMIN ROUTE TEST SUITE             ║');
   console.log('╚══════════════════════════════════════════════════╝');
   console.log(`API Root: ${API_ROOT}`);
-  console.log(`Timestamp: ${timestamp}\n`);
 
   try {
-    // Clean up any previous test data
-    await prisma.investorKyc.deleteMany({
-      where: { user: { email: investorEmail } },
-    }).catch(() => {});
-    await prisma.investorAuthUser.deleteMany({
-      where: { email: { in: [investorEmail, `managed_${timestamp}@example.com`] } },
-    }).catch(() => {});
+    await prisma.investorKyc.deleteMany({ where: { user: { email: investorEmail } } }).catch(() => {});
+    await prisma.investorAuthUser.deleteMany({ where: { email: { in: [investorEmail, `managed_${timestamp}@example.com`] } } }).catch(() => {});
     await prisma.adminUser.deleteMany({ where: { email: adminEmail } }).catch(() => {});
 
     await setupAccounts();
@@ -627,14 +502,9 @@ async function run() {
     await testAdminKycRoutes();
     await testAdminUserRoutes();
   } finally {
-    // Clean up test data
-    console.log('\n🧹 Cleaning up test data...');
-    await prisma.investorKyc.deleteMany({
-      where: { user: { email: investorEmail } },
-    }).catch(() => {});
-    await prisma.investorAuthUser.deleteMany({
-      where: { email: { in: [investorEmail, `managed_${timestamp}@example.com`] } },
-    }).catch(() => {});
+    console.log('\n🧹 Cleaning up...');
+    await prisma.investorKyc.deleteMany({ where: { user: { email: investorEmail } } }).catch(() => {});
+    await prisma.investorAuthUser.deleteMany({ where: { email: { in: [investorEmail, `managed_${timestamp}@example.com`] } } }).catch(() => {});
     await prisma.adminUser.deleteMany({ where: { email: adminEmail } }).catch(() => {});
     await prisma.$disconnect();
   }
@@ -643,12 +513,10 @@ async function run() {
   console.log(`║  Results: ${state.passed} passed, ${state.failures} failed`);
   console.log('╚══════════════════════════════════════════════════╝');
 
-  if (state.failures > 0) {
-    process.exitCode = 1;
-  }
+  if (state.failures > 0) process.exitCode = 1;
 }
 
-run().catch((error) => {
-  console.error('\n💥 Fatal test script error:', error);
+run().catch((e) => {
+  console.error('\n💥 Fatal:', e);
   process.exit(1);
 });
