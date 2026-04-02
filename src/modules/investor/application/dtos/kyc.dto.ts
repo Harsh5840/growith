@@ -1,5 +1,5 @@
 export interface SubmitKycRequestDto {
-  // Step 1: Personal Info
+  // Personal Info
   fullLegalName: string;
   dateOfBirth: string;
   nationality: string;
@@ -9,11 +9,15 @@ export interface SubmitKycRequestDto {
   phoneNumber: string;
   streetAddress: string;
 
-  // Step 2: Primary Document
-  primaryDocumentType: 'AADHAAR' | 'PAN';
+  // Document Numbers
+  aadhaarNumber: string;
+  panNumber: string;
 
-  // Step 2: Supporting Document (optional)
+  // Supporting Document (optional)
   supportingDocName?: string;
+
+  // Terms & Conditions
+  termsAgreed: boolean; // must be true
 }
 
 export interface KycStatusResponseDto {
@@ -32,11 +36,14 @@ export interface KycWithUserResponseDto {
     stateProvince: string;
     phoneNumber: string;
     streetAddress: string;
-    primaryDocumentType: string;
-    primaryDocFrontUrl: string;
-    primaryDocBackUrl: string | null;
+    aadhaarNumber: string;
+    aadhaarFrontUrl: string;
+    aadhaarBackUrl: string;
+    panNumber: string;
+    panFrontUrl: string;
     supportingDocName: string | null;
     supportingDocUrl: string | null;
+    termsAgreedAt: Date;
     status: string;
     rejectionReason: string | null;
     reviewedAt: Date | null;

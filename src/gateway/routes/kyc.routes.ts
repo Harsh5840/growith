@@ -20,8 +20,9 @@ const upload = multer({
 });
 
 const kycUploadFields = upload.fields([
-  { name: 'primaryDocFront', maxCount: 1 },
-  { name: 'primaryDocBack', maxCount: 1 },
+  { name: 'aadhaarFront', maxCount: 1 },
+  { name: 'aadhaarBack', maxCount: 1 },
+  { name: 'panFront', maxCount: 1 },
   { name: 'supportingDoc', maxCount: 1 },
 ]);
 
@@ -35,7 +36,13 @@ const validateKycBody: RequestHandler = (req, _res, next) => {
     stateProvince: Joi.string().min(1).max(100).required(),
     phoneNumber: Joi.string().min(5).max(20).required(),
     streetAddress: Joi.string().min(5).max(500).required(),
-    primaryDocumentType: Joi.string().valid('AADHAAR', 'PAN').required(),
+    aadhaarNumber: Joi.string().pattern(/^\d{12}$/).required().messages({
+      'string.pattern.base': 'Aadhaar number must be exactly 12 digits',
+    }),
+    panNumber: Joi.string().pattern(/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/).required().messages({
+      'string.pattern.base': 'PAN number must be in format ABCDE1234F',
+    }),
+    termsAgreed: Joi.any().required(),
     supportingDocName: Joi.string().max(200).optional().allow('', null),
   });
 
@@ -49,7 +56,6 @@ const validateKycBody: RequestHandler = (req, _res, next) => {
     return next(new HttpError(400, error.details[0]?.message || 'Validation failed'));
   }
 
-  // Overwrite only the validated fields back
   req.body = { ...req.body, ...value };
   return next();
 };

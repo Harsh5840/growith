@@ -46,7 +46,7 @@ model InvestorKyc {
 	userId                Int       @unique
 	user                  InvestorAuthUser @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-	// Step 1: Personal Info
+	// Personal Info
 	fullLegalName         String
 	dateOfBirth           String
 	nationality           String
@@ -56,14 +56,21 @@ model InvestorKyc {
 	phoneNumber           String
 	streetAddress         String
 
-	// Step 2: Primary Document
-	primaryDocumentType   String          // "AADHAAR" | "PAN"
-	primaryDocFrontUrl    String          // S3 key
-	primaryDocBackUrl     String?         // S3 key (null for PAN)
+	// Aadhaar Card (required)
+	aadhaarNumber         String
+	aadhaarFrontUrl       String          // S3 key
+	aadhaarBackUrl        String          // S3 key
 
-	// Step 2: Supporting Document
+	// PAN Card (required)
+	panNumber             String
+	panFrontUrl           String          // S3 key
+
+	// Supporting Document (optional)
 	supportingDocName     String?
 	supportingDocUrl      String?         // S3 key
+
+	// Terms & Conditions
+	termsAgreedAt         DateTime        // When user agreed to T&C
 
 	// Admin Review
 	status                String    @default("PENDING")   // PENDING | APPROVED | REJECTED

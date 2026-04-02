@@ -49,7 +49,8 @@ export class AdminKycService {
       id: s.id,
       userId: s.userId,
       fullLegalName: s.fullLegalName,
-      primaryDocumentType: s.primaryDocumentType,
+      aadhaarNumber: s.aadhaarNumber,
+      panNumber: s.panNumber,
       status: s.status,
       rejectionReason: s.rejectionReason,
       reviewedAt: s.reviewedAt,
@@ -82,10 +83,9 @@ export class AdminKycService {
     }
 
     // Generate presigned URLs
-    const primaryDocFrontUrl = await this.s3Adapter.getSignedUrl(kyc.primaryDocFrontUrl);
-    const primaryDocBackUrl = kyc.primaryDocBackUrl
-      ? await this.s3Adapter.getSignedUrl(kyc.primaryDocBackUrl)
-      : null;
+    const aadhaarFrontUrl = await this.s3Adapter.getSignedUrl(kyc.aadhaarFrontUrl);
+    const aadhaarBackUrl = await this.s3Adapter.getSignedUrl(kyc.aadhaarBackUrl);
+    const panFrontUrl = await this.s3Adapter.getSignedUrl(kyc.panFrontUrl);
     const supportingDocUrl = kyc.supportingDocUrl
       ? await this.s3Adapter.getSignedUrl(kyc.supportingDocUrl)
       : null;
@@ -102,11 +102,14 @@ export class AdminKycService {
         stateProvince: kyc.stateProvince,
         phoneNumber: kyc.phoneNumber,
         streetAddress: kyc.streetAddress,
-        primaryDocumentType: kyc.primaryDocumentType,
-        primaryDocFrontUrl,
-        primaryDocBackUrl,
+        aadhaarNumber: kyc.aadhaarNumber,
+        aadhaarFrontUrl,
+        aadhaarBackUrl,
+        panNumber: kyc.panNumber,
+        panFrontUrl,
         supportingDocName: kyc.supportingDocName,
         supportingDocUrl,
+        termsAgreedAt: kyc.termsAgreedAt,
         status: kyc.status,
         rejectionReason: kyc.rejectionReason,
         reviewedBy: kyc.reviewedBy,
@@ -128,7 +131,6 @@ export class AdminKycService {
       throw new HttpError(400, 'KYC is already approved');
     }
 
-    // Update KYC record
     const updatedKyc = await this.prisma.investorKyc.update({
       where: { id: kycId },
       data: {
@@ -139,7 +141,6 @@ export class AdminKycService {
       },
     });
 
-    // Update user's kycStatus
     await this.prisma.investorAuthUser.update({
       where: { id: kyc.userId },
       data: { kycStatus: 'APPROVED' },
@@ -166,7 +167,6 @@ export class AdminKycService {
       throw new HttpError(400, 'Cannot reject an already approved KYC');
     }
 
-    // Update KYC record
     const updatedKyc = await this.prisma.investorKyc.update({
       where: { id: kycId },
       data: {
@@ -177,7 +177,6 @@ export class AdminKycService {
       },
     });
 
-    // Update user's kycStatus
     await this.prisma.investorAuthUser.update({
       where: { id: kyc.userId },
       data: { kycStatus: 'REJECTED' },
