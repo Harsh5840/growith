@@ -1,0 +1,793 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>KYC Upload Tester — Growith</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0a0b0f;
+      --surface: #111318;
+      --surface2: #1a1d26;
+      --border: #252836;
+      --accent: #6c63ff;
+      --accent2: #a78bfa;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --error: #ef4444;
+      --text: #e2e8f0;
+      --muted: #718096;
+      --radius: 12px;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 24px;
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 32px;
+    }
+
+    .header h1 {
+      font-size: 28px;
+      font-weight: 700;
+      background: linear-gradient(135deg, #6c63ff, #a78bfa, #38bdf8);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 6px;
+    }
+
+    .header p {
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px;
+    }
+
+    .card-title {
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .card-title::before {
+      content: '';
+      display: block;
+      width: 3px;
+      height: 14px;
+      background: var(--accent);
+      border-radius: 2px;
+    }
+
+    .field-group {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .field-group.single { grid-template-columns: 1fr; }
+
+    label {
+      display: block;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--muted);
+      margin-bottom: 6px;
+      letter-spacing: 0.03em;
+    }
+
+    label span.required { color: var(--error); margin-left: 2px; }
+
+    input[type="text"], input[type="date"], input[type="password"] {
+      width: 100%;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 14px;
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      font-size: 13px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    input:focus { border-color: var(--accent); }
+    input::placeholder { color: #4a5568; }
+
+    .file-field {
+      background: var(--surface2);
+      border: 1px dashed var(--border);
+      border-radius: 8px;
+      padding: 12px 14px;
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+      position: relative;
+    }
+
+    .file-field:hover { border-color: var(--accent); }
+    .file-field.has-file { border-color: var(--success); border-style: solid; }
+    .file-field.too-large { border-color: var(--error); border-style: solid; }
+
+    .file-field input[type="file"] {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      cursor: pointer;
+      width: 100%;
+      height: 100%;
+    }
+
+    .file-info {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      pointer-events: none;
+    }
+
+    .file-icon { font-size: 20px; }
+
+    .file-text { flex: 1; }
+    .file-text .file-name { font-size: 12px; font-weight: 500; color: var(--text); }
+    .file-text .file-size { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+    .file-badge {
+      font-size: 10px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 20px;
+      letter-spacing: 0.05em;
+    }
+
+    .badge-ok { background: rgba(16,185,129,0.15); color: var(--success); }
+    .badge-large { background: rgba(239,68,68,0.15); color: var(--error); }
+    .badge-empty { background: rgba(113,128,150,0.15); color: var(--muted); }
+
+    .section-divider {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin: 16px 0 12px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .checkbox-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: 4px;
+    }
+
+    input[type="checkbox"] {
+      width: 16px;
+      height: 16px;
+      accent-color: var(--accent);
+      cursor: pointer;
+    }
+
+    .checkbox-row label { margin: 0; cursor: pointer; font-size: 13px; color: var(--text); }
+
+    .btn {
+      width: 100%;
+      padding: 13px;
+      border: none;
+      border-radius: 8px;
+      font-family: 'Inter', sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 20px;
+      transition: opacity 0.2s, transform 0.1s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .btn:active { transform: scale(0.98); }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #6c63ff, #a78bfa);
+      color: #fff;
+    }
+
+    .btn-secondary {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      color: var(--text);
+      margin-top: 10px;
+    }
+
+    /* Response Panel */
+    .response-panel { display: flex; flex-direction: column; gap: 16px; }
+
+    .status-bar {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 16px;
+      border-radius: 8px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      font-size: 13px;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--muted);
+      flex-shrink: 0;
+    }
+
+    .status-dot.success { background: var(--success); box-shadow: 0 0 6px var(--success); }
+    .status-dot.error { background: var(--error); box-shadow: 0 0 6px var(--error); }
+    .status-dot.loading { background: var(--warning); animation: pulse 1s infinite; }
+
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+    .status-code {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      font-weight: 600;
+      margin-left: auto;
+      padding: 2px 10px;
+      border-radius: 6px;
+    }
+
+    .code-2xx { background: rgba(16,185,129,0.15); color: var(--success); }
+    .code-4xx { background: rgba(239,68,68,0.15); color: var(--error); }
+    .code-5xx { background: rgba(239,68,68,0.15); color: var(--error); }
+
+    .response-body {
+      background: #0d1117;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      color: #e2e8f0;
+      white-space: pre-wrap;
+      word-break: break-word;
+      max-height: 360px;
+      overflow-y: auto;
+      line-height: 1.6;
+    }
+
+    .response-body::-webkit-scrollbar { width: 6px; }
+    .response-body::-webkit-scrollbar-track { background: transparent; }
+    .response-body::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+    .timing-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+
+    .timing-item {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 14px;
+      text-align: center;
+    }
+
+    .timing-item .value {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--accent2);
+    }
+
+    .timing-item .label {
+      font-size: 10px;
+      color: var(--muted);
+      margin-top: 3px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    .payload-size-bar {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px 16px;
+    }
+
+    .payload-size-bar .title {
+      font-size: 11px;
+      color: var(--muted);
+      margin-bottom: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      font-weight: 600;
+    }
+
+    .progress-track {
+      background: var(--bg);
+      border-radius: 4px;
+      height: 6px;
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      height: 100%;
+      border-radius: 4px;
+      background: linear-gradient(90deg, var(--success), var(--warning));
+      transition: width 0.4s ease;
+    }
+
+    .progress-fill.over { background: var(--error); }
+
+    .progress-labels {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 6px;
+      font-size: 11px;
+    }
+
+    .hint {
+      padding: 10px 14px;
+      background: rgba(108,99,255,0.08);
+      border: 1px solid rgba(108,99,255,0.2);
+      border-radius: 8px;
+      font-size: 12px;
+      color: var(--accent2);
+      line-height: 1.5;
+    }
+
+    .hint strong { color: #fff; }
+
+    @media (max-width: 860px) {
+      .layout { grid-template-columns: 1fr; }
+      .field-group { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <h1>🔬 KYC Upload Tester</h1>
+  <p>Debug tool for <code style="color:#a78bfa">POST /api/v1/investor/kyc</code> — checks file sizes, payload, and server response</p>
+</div>
+
+<div class="layout">
+
+  <!-- LEFT: Form -->
+  <div class="card">
+    <div class="card-title">Request Configuration</div>
+
+    <div class="field-group">
+      <div>
+        <label>API Base URL <span class="required">*</span></label>
+        <input type="text" id="baseUrl" value="https://growith-zwl3.vercel.app" placeholder="https://your-api.vercel.app" />
+      </div>
+      <div>
+        <label>JWT Bearer Token <span class="required">*</span></label>
+        <input type="text" id="token" placeholder="eyJhbGciOi..." />
+      </div>
+    </div>
+
+    <div class="section-divider">Personal Information</div>
+
+    <div class="field-group">
+      <div>
+        <label>Full Legal Name <span class="required">*</span></label>
+        <input type="text" id="fullLegalName" value="Athar Ahmad" />
+      </div>
+      <div>
+        <label>Date of Birth <span class="required">*</span></label>
+        <input type="text" id="dateOfBirth" value="12-12-2000" placeholder="DD-MM-YYYY" />
+      </div>
+    </div>
+
+    <div class="field-group">
+      <div>
+        <label>Nationality <span class="required">*</span></label>
+        <input type="text" id="nationality" value="Indian" />
+      </div>
+      <div>
+        <label>Country of Residence <span class="required">*</span></label>
+        <input type="text" id="countryOfResidence" value="India" />
+      </div>
+    </div>
+
+    <div class="field-group">
+      <div>
+        <label>City <span class="required">*</span></label>
+        <input type="text" id="city" value="Amroha" />
+      </div>
+      <div>
+        <label>State / Province <span class="required">*</span></label>
+        <input type="text" id="stateProvince" value="Uttar Pradesh" />
+      </div>
+    </div>
+
+    <div class="field-group">
+      <div>
+        <label>Phone Number <span class="required">*</span></label>
+        <input type="text" id="phoneNumber" value="+918192999411" />
+      </div>
+      <div>
+        <label>Street Address <span class="required">*</span></label>
+        <input type="text" id="streetAddress" value="Rounaq vatika amroha" />
+      </div>
+    </div>
+
+    <div class="field-group">
+      <div>
+        <label>Aadhaar Number <span class="required">*</span> (12 digits)</label>
+        <input type="text" id="aadhaarNumber" value="975767635832" maxlength="12" />
+      </div>
+      <div>
+        <label>PAN Number <span class="required">*</span> (ABCDE1234F)</label>
+        <input type="text" id="panNumber" value="ABCPI8880K" maxlength="10" style="text-transform:uppercase" />
+      </div>
+    </div>
+
+    <div class="section-divider">Documents (JPG / PNG / PDF · max 10 MB each)</div>
+
+    <div class="field-group">
+      <div>
+        <label>Aadhaar Front <span class="required">*</span></label>
+        <div class="file-field" id="field-aadhaarFront">
+          <input type="file" id="aadhaarFront" accept="image/jpeg,image/png,image/jpg,application/pdf" onchange="handleFile(this,'aadhaarFront')" />
+          <div class="file-info">
+            <span class="file-icon">📄</span>
+            <div class="file-text">
+              <div class="file-name" id="name-aadhaarFront">Choose file…</div>
+              <div class="file-size" id="size-aadhaarFront">—</div>
+            </div>
+            <span class="file-badge badge-empty" id="badge-aadhaarFront">EMPTY</span>
+          </div>
+        </div>
+      </div>
+      <div>
+        <label>Aadhaar Back <span class="required">*</span></label>
+        <div class="file-field" id="field-aadhaarBack">
+          <input type="file" id="aadhaarBack" accept="image/jpeg,image/png,image/jpg,application/pdf" onchange="handleFile(this,'aadhaarBack')" />
+          <div class="file-info">
+            <span class="file-icon">📄</span>
+            <div class="file-text">
+              <div class="file-name" id="name-aadhaarBack">Choose file…</div>
+              <div class="file-size" id="size-aadhaarBack">—</div>
+            </div>
+            <span class="file-badge badge-empty" id="badge-aadhaarBack">EMPTY</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="field-group">
+      <div>
+        <label>PAN Front <span class="required">*</span></label>
+        <div class="file-field" id="field-panFront">
+          <input type="file" id="panFront" accept="image/jpeg,image/png,image/jpg,application/pdf" onchange="handleFile(this,'panFront')" />
+          <div class="file-info">
+            <span class="file-icon">💳</span>
+            <div class="file-text">
+              <div class="file-name" id="name-panFront">Choose file…</div>
+              <div class="file-size" id="size-panFront">—</div>
+            </div>
+            <span class="file-badge badge-empty" id="badge-panFront">EMPTY</span>
+          </div>
+        </div>
+      </div>
+      <div>
+        <label>Supporting Document (optional)</label>
+        <div class="file-field" id="field-supportingDoc">
+          <input type="file" id="supportingDoc" accept="image/jpeg,image/png,image/jpg,application/pdf" onchange="handleFile(this,'supportingDoc')" />
+          <div class="file-info">
+            <span class="file-icon">📎</span>
+            <div class="file-text">
+              <div class="file-name" id="name-supportingDoc">Choose file…</div>
+              <div class="file-size" id="size-supportingDoc">—</div>
+            </div>
+            <span class="file-badge badge-empty" id="badge-supportingDoc">EMPTY</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div style="margin-top:12px">
+      <label>Supporting Doc Name (optional)</label>
+      <input type="text" id="supportingDocName" placeholder="e.g. Bank Statement" />
+    </div>
+
+    <div class="section-divider">T&C</div>
+    <div class="checkbox-row">
+      <input type="checkbox" id="termsAgreed" checked />
+      <label for="termsAgreed">I agree to the Terms & Conditions</label>
+    </div>
+
+    <button class="btn btn-primary" onclick="submitKyc()" id="submitBtn">
+      🚀 Submit KYC
+    </button>
+    <button class="btn btn-secondary" onclick="checkStatus()">
+      📡 GET /kyc/status only
+    </button>
+  </div>
+
+  <!-- RIGHT: Response -->
+  <div class="card response-panel">
+    <div class="card-title">Response Inspector</div>
+
+    <div class="payload-size-bar">
+      <div class="title">Estimated Payload Size</div>
+      <div class="progress-track">
+        <div class="progress-fill" id="progressFill" style="width:0%"></div>
+      </div>
+      <div class="progress-labels">
+        <span id="payloadSizeLabel" style="color:var(--muted)">0 KB</span>
+        <span style="color:var(--muted)">Limit ≈ 10 MB (per file)</span>
+      </div>
+    </div>
+
+    <div class="hint">
+      💡 <strong>Debugging 413?</strong> Watch the payload bar above. If any single file exceeds <strong>10 MB</strong>, multer will reject it. If the total payload is large, ensure <code>bodyParser: false</code> is set in vercel.json.
+    </div>
+
+    <div class="status-bar" id="statusBar">
+      <div class="status-dot" id="statusDot"></div>
+      <span id="statusText">Waiting for request…</span>
+      <span class="status-code" id="statusCode" style="display:none"></span>
+    </div>
+
+    <div class="timing-grid" id="timingGrid" style="display:none">
+      <div class="timing-item">
+        <div class="value" id="timingMs">—</div>
+        <div class="label">Duration</div>
+      </div>
+      <div class="timing-item">
+        <div class="value" id="timingSize">—</div>
+        <div class="label">Payload Sent</div>
+      </div>
+      <div class="timing-item">
+        <div class="value" id="timingFiles">—</div>
+        <div class="label">Files Attached</div>
+      </div>
+    </div>
+
+    <div>
+      <div class="card-title" style="margin-bottom:8px">Response Body</div>
+      <pre class="response-body" id="responseBody">// Response will appear here…</pre>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  const MAX_PER_FILE = 10 * 1024 * 1024; // 10 MB
+  const VERCEL_SOFT_LIMIT = 10 * 1024 * 1024; // 10 MB
+
+  function formatBytes(bytes) {
+    if (bytes === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  }
+
+  function handleFile(input, fieldName) {
+    const file = input.files[0];
+    const nameEl = document.getElementById('name-' + fieldName);
+    const sizeEl = document.getElementById('size-' + fieldName);
+    const badgeEl = document.getElementById('badge-' + fieldName);
+    const fieldEl = document.getElementById('field-' + fieldName);
+
+    if (!file) {
+      nameEl.textContent = 'Choose file…';
+      sizeEl.textContent = '—';
+      badgeEl.textContent = 'EMPTY';
+      badgeEl.className = 'file-badge badge-empty';
+      fieldEl.className = 'file-field';
+      updatePayloadSize();
+      return;
+    }
+
+    nameEl.textContent = file.name;
+    sizeEl.textContent = formatBytes(file.size);
+
+    if (file.size > MAX_PER_FILE) {
+      badgeEl.textContent = 'TOO LARGE';
+      badgeEl.className = 'file-badge badge-large';
+      fieldEl.className = 'file-field too-large';
+    } else {
+      badgeEl.textContent = 'OK';
+      badgeEl.className = 'file-badge badge-ok';
+      fieldEl.className = 'file-field has-file';
+    }
+
+    updatePayloadSize();
+  }
+
+  function updatePayloadSize() {
+    const fields = ['aadhaarFront', 'aadhaarBack', 'panFront', 'supportingDoc'];
+    let total = 0;
+    let count = 0;
+
+    fields.forEach(f => {
+      const input = document.getElementById(f);
+      if (input.files[0]) {
+        total += input.files[0].size;
+        count++;
+      }
+    });
+
+    const pct = Math.min((total / VERCEL_SOFT_LIMIT) * 100, 100);
+    const fill = document.getElementById('progressFill');
+    fill.style.width = pct + '%';
+    fill.className = 'progress-fill' + (total > VERCEL_SOFT_LIMIT ? ' over' : '');
+    document.getElementById('payloadSizeLabel').textContent = formatBytes(total) + ' of files';
+  }
+
+  function setStatus(type, text, code) {
+    const dot = document.getElementById('statusDot');
+    const txt = document.getElementById('statusText');
+    const codeEl = document.getElementById('statusCode');
+
+    dot.className = 'status-dot ' + type;
+    txt.textContent = text;
+
+    if (code) {
+      codeEl.style.display = '';
+      codeEl.textContent = code;
+      const cl = Math.floor(code / 100);
+      codeEl.className = 'status-code code-' + cl + 'xx';
+    } else {
+      codeEl.style.display = 'none';
+    }
+  }
+
+  function setResponse(text) {
+    try {
+      const parsed = JSON.parse(text);
+      document.getElementById('responseBody').textContent = JSON.stringify(parsed, null, 2);
+    } catch {
+      document.getElementById('responseBody').textContent = text;
+    }
+  }
+
+  async function checkStatus() {
+    const base = document.getElementById('baseUrl').value.trim().replace(/\/$/, '');
+    const token = document.getElementById('token').value.trim();
+
+    setStatus('loading', 'Fetching status…');
+    document.getElementById('timingGrid').style.display = 'none';
+
+    try {
+      const t0 = Date.now();
+      const res = await fetch(base + '/api/v1/investor/kyc/status', {
+        headers: { Authorization: 'Bearer ' + token }
+      });
+      const elapsed = Date.now() - t0;
+      const text = await res.text();
+      setStatus(res.ok ? 'success' : 'error', res.ok ? 'Success' : 'Error', res.status);
+      setResponse(text);
+
+      document.getElementById('timingGrid').style.display = 'grid';
+      document.getElementById('timingMs').textContent = elapsed + 'ms';
+      document.getElementById('timingSize').textContent = '—';
+      document.getElementById('timingFiles').textContent = '0';
+    } catch (err) {
+      setStatus('error', 'Network error: ' + err.message);
+      setResponse(err.toString());
+    }
+  }
+
+  async function submitKyc() {
+    const base = document.getElementById('baseUrl').value.trim().replace(/\/$/, '');
+    const token = document.getElementById('token').value.trim();
+
+    if (!token) {
+      alert('Please paste your JWT token first!');
+      return;
+    }
+
+    const fd = new FormData();
+
+    // Text fields
+    fd.append('fullLegalName', document.getElementById('fullLegalName').value);
+    fd.append('dateOfBirth', document.getElementById('dateOfBirth').value);
+    fd.append('nationality', document.getElementById('nationality').value);
+    fd.append('countryOfResidence', document.getElementById('countryOfResidence').value);
+    fd.append('city', document.getElementById('city').value);
+    fd.append('stateProvince', document.getElementById('stateProvince').value);
+    fd.append('phoneNumber', document.getElementById('phoneNumber').value);
+    fd.append('streetAddress', document.getElementById('streetAddress').value);
+    fd.append('aadhaarNumber', document.getElementById('aadhaarNumber').value);
+    fd.append('panNumber', document.getElementById('panNumber').value.toUpperCase());
+    fd.append('termsAgreed', document.getElementById('termsAgreed').checked ? 'true' : 'false');
+
+    const supportingDocName = document.getElementById('supportingDocName').value;
+    if (supportingDocName) fd.append('supportingDocName', supportingDocName);
+
+    // File fields
+    const fileFields = ['aadhaarFront', 'aadhaarBack', 'panFront', 'supportingDoc'];
+    let fileCount = 0;
+    let totalSize = 0;
+
+    for (const field of fileFields) {
+      const input = document.getElementById(field);
+      if (input.files[0]) {
+        fd.append(field, input.files[0]);
+        fileCount++;
+        totalSize += input.files[0].size;
+      }
+    }
+
+    setStatus('loading', 'Sending request…');
+    document.getElementById('submitBtn').disabled = true;
+    document.getElementById('timingGrid').style.display = 'none';
+    setResponse('// Waiting…');
+
+    const t0 = Date.now();
+
+    try {
+      const res = await fetch(base + '/api/v1/investor/kyc', {
+        method: 'POST',
+        headers: { Authorization: 'Bearer ' + token },
+        body: fd,
+      });
+
+      const elapsed = Date.now() - t0;
+      const text = await res.text();
+
+      setStatus(res.ok ? 'success' : 'error', res.ok ? '✅ KYC submitted successfully' : '❌ Server returned error', res.status);
+      setResponse(text);
+
+      document.getElementById('timingGrid').style.display = 'grid';
+      document.getElementById('timingMs').textContent = elapsed + 'ms';
+      document.getElementById('timingSize').textContent = formatBytes(totalSize);
+      document.getElementById('timingFiles').textContent = fileCount;
+
+    } catch (err) {
+      const elapsed = Date.now() - t0;
+      setStatus('error', '🔴 Network/CORS error — check console');
+      setResponse('Error: ' + err.message + '\n\nThis may be a CORS issue or the server is unreachable.\nCheck the browser DevTools console for more details.');
+
+      document.getElementById('timingGrid').style.display = 'grid';
+      document.getElementById('timingMs').textContent = elapsed + 'ms';
+      document.getElementById('timingSize').textContent = formatBytes(totalSize);
+      document.getElementById('timingFiles').textContent = fileCount;
+    } finally {
+      document.getElementById('submitBtn').disabled = false;
+    }
+  }
+</script>
+
+</body>
+</html>

@@ -16,10 +16,13 @@ import {
 import { AuthResponse, AuthUserPayload, ValidateEmailResponse } from '../models/auth-response.model';
 import { HttpError } from '../../../../shared/errors/http-error';
 import { emailAdapter } from '../../../../shared/notifications/email.adapter';
+import * as crypto from 'crypto';
 
 export class InvestorAuthService implements InvestorAuthUseCasePort {
   private readonly googleClient: OAuth2Client;
   private readonly usedCodes = new Set<string>();
+  private readonly inFlightPasswordResetEmails = new Set<string>();
+  private readonly inFlightVerificationEmails = new Set<string>();
 
   constructor(private readonly repository: InvestorAuthRepositoryPort, private readonly jwtTokenService: JwtTokenService) {
     this.googleClient = new OAuth2Client(
@@ -46,6 +49,7 @@ export class InvestorAuthService implements InvestorAuthUseCasePort {
       password: passwordHash,
     });
 
+    // Automatically trigger the email verification code dispatch
     await this.sendEmailVerification(user.email);
 
     const tokens = this.jwtTokenService.generateTokens(user.id, user.email);
@@ -245,7 +249,6 @@ export class InvestorAuthService implements InvestorAuthUseCasePort {
       fullName: user.fullName,
       profilePicture: user.profilePicture,
       emailVerified: user.emailVerified,
-      kycStatus: user.kycStatus,
     };
   }
 
@@ -254,34 +257,49 @@ export class InvestorAuthService implements InvestorAuthUseCasePort {
   }
 
   async sendPasswordResetEmail(email: string): Promise<void> {
-    const code = this.generateCode();
-    const expires = new Date();
-    expires.setMinutes(expires.getMinutes() + 15);
-
-    const result = await this.repository.issueForgotPasswordCode(email, code, expires);
-
-    if (result.status === 'not-found') {
-      throw new HttpError(404, 'No account found with this email');
-    }
-
-    if (result.status !== 'issued') {
+    const normalizedEmail = email.toLowerCase();
+    if (this.inFlightPasswordResetEmails.has(normalizedEmail)) {
       return;
     }
 
-    await emailAdapter.sendEmail({
-      to: result.email,
-      subject: 'Password Reset Code - Growith',
-      text: `Your password reset code is: ${code}\nThis code will expire in 15 minutes.`,
-      html: `
-        <div style="font-family: sans-serif; padding: 20px;">
-          <h2>Password Reset Request</h2>
-          <p>We received a request to reset your password. Use the code below to proceed:</p>
-          <h1 style="color: #4F46E5; letter-spacing: 2px; padding: 10px; background: #f3f4f6; display: inline-block; border-radius: 4px;">${code}</h1>
-          <p>This code will expire in 15 minutes.</p>
-          <p>If you didn't request this, you can safely ignore this email.</p>
-        </div>
-      `
-    });
+    this.inFlightPasswordResetEmails.add(normalizedEmail);
+    try {
+      const user = await this.repository.findByEmail(normalizedEmail);
+      if (!user) {
+        throw new HttpError(404, 'No account found with this email');
+      }
+
+      // Guard against duplicate requests by not re-sending while a code is still active.
+      if (user.forgotPasswordCode && user.forgotPasswordExpires && user.forgotPasswordExpires > new Date()) {
+        return;
+      }
+
+      const code = this.generateCode();
+      const expires = new Date();
+      expires.setMinutes(expires.getMinutes() + 15);
+
+      const issued = await this.repository.setForgotPasswordCodeIfNotActive(user.id, code, expires);
+      if (!issued) {
+        return;
+      }
+
+      await emailAdapter.sendEmail({
+        to: normalizedEmail,
+        subject: 'Password Reset Code - ShivAI',
+        text: `Your password reset code is: ${code}\nThis code will expire in 15 minutes.`,
+        html: `
+          <div style="font-family: sans-serif; padding: 20px;">
+            <h2>Password Reset Request</h2>
+            <p>We received a request to reset your password. Use the code below to proceed:</p>
+            <h1 style="color: #4F46E5; letter-spacing: 2px; padding: 10px; background: #f3f4f6; display: inline-block; border-radius: 4px;">${code}</h1>
+            <p>This code will expire in 15 minutes.</p>
+            <p>If you didn't request this, you can safely ignore this email.</p>
+          </div>
+        `
+      });
+    } finally {
+      this.inFlightPasswordResetEmails.delete(normalizedEmail);
+    }
   }
 
   async verifyForgotPasswordCode(input: VerifyForgotPasswordCodeDto): Promise<{ success: boolean; message: string }> {
@@ -315,46 +333,61 @@ export class InvestorAuthService implements InvestorAuthUseCasePort {
 
     const passwordHash = await bcrypt.hash(input.newPassword, Number(process.env.BCRYPT_SALT_ROUNDS || 12));
     
-    await this.repository.updateUser(user.id, {
+    await this.repository.updateUser(user.id, { 
       passwordHash,
-      emailVerified: true,
+      emailVerified: true, // Implicitly verify email on successful reset
       forgotPasswordCode: null as any,
       forgotPasswordExpires: null as any,
     });
   }
 
   async sendEmailVerification(email: string): Promise<void> {
-    const code = this.generateCode();
-    const expires = new Date();
-    expires.setMinutes(expires.getMinutes() + 15);
-
-    const result = await this.repository.issueEmailVerificationCode(email, code, expires);
-
-    if (result.status === 'not-found') {
-      throw new HttpError(404, 'No account found with this email');
-    }
-
-    if (result.status === 'already-verified') {
-      throw new HttpError(400, 'Email is already verified');
-    }
-
-    if (result.status !== 'issued') {
+    const normalizedEmail = email.toLowerCase();
+    if (this.inFlightVerificationEmails.has(normalizedEmail)) {
       return;
     }
 
-    await emailAdapter.sendEmail({
-      to: result.email,
-      subject: 'Verify Your Email - Growith',
-      text: `Your email verification code is: ${code}\nThis code will expire in 15 minutes.`,
-      html: `
-        <div style="font-family: sans-serif; padding: 20px;">
-          <h2>Welcome to Growith!</h2>
-          <p>Please use the verification code below to confirm your email address:</p>
-          <h1 style="color: #10B981; letter-spacing: 2px; padding: 10px; background: #f3f4f6; display: inline-block; border-radius: 4px;">${code}</h1>
-          <p>This code will expire in 15 minutes.</p>
-        </div>
-      `
-    });
+    this.inFlightVerificationEmails.add(normalizedEmail);
+    try {
+      const user = await this.repository.findByEmail(normalizedEmail);
+      if (!user) {
+        throw new HttpError(404, 'No account found with this email');
+      }
+
+      if (user.emailVerified) {
+        throw new HttpError(400, 'Email is already verified');
+      }
+
+      // Guard against duplicate requests by not re-sending while a code is still active.
+      if (user.emailVerificationCode && user.emailVerificationExpires && user.emailVerificationExpires > new Date()) {
+        return;
+      }
+
+      const code = this.generateCode();
+      const expires = new Date();
+      expires.setMinutes(expires.getMinutes() + 15);
+
+      const issued = await this.repository.setEmailVerificationCodeIfNotActive(user.id, code, expires);
+      if (!issued) {
+        return;
+      }
+
+      await emailAdapter.sendEmail({
+        to: normalizedEmail,
+        subject: 'Verify Your Email - ShivAI',
+        text: `Your email verification code is: ${code}\nThis code will expire in 15 minutes.`,
+        html: `
+          <div style="font-family: sans-serif; padding: 20px;">
+            <h2>Welcome to ShivAI!</h2>
+            <p>Please use the verification code below to confirm your email address:</p>
+            <h1 style="color: #10B981; letter-spacing: 2px; padding: 10px; background: #f3f4f6; display: inline-block; border-radius: 4px;">${code}</h1>
+            <p>This code will expire in 15 minutes.</p>
+          </div>
+        `
+      });
+    } finally {
+      this.inFlightVerificationEmails.delete(normalizedEmail);
+    }
   }
 
   async verifyEmail(input: VerifyEmailRequestDto): Promise<{ success: boolean; message: string }> {
@@ -392,7 +425,6 @@ export class InvestorAuthService implements InvestorAuthUseCasePort {
       fullName: string;
       profilePicture?: string;
       emailVerified: boolean;
-      kycStatus: string;
     },
     tokens: { accessToken: string; refreshToken: string },
   ): AuthResponse {
@@ -403,7 +435,6 @@ export class InvestorAuthService implements InvestorAuthUseCasePort {
         fullName: user.fullName,
         profilePicture: user.profilePicture,
         emailVerified: user.emailVerified,
-        kycStatus: user.kycStatus,
       },
       tokens,
       codeVerified: false,
