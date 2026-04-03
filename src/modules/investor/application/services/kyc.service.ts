@@ -101,7 +101,7 @@ export class KycService {
         supportingDocName: data.supportingDocName || null,
         supportingDocUrl: supportingDocKey,
         termsAgreedAt: new Date(),
-        status: 'PENDING',
+        status: 'PENDING_APPROVAL',
       },
     });
 
