@@ -45,18 +45,26 @@ export class AdminKycService {
       orderBy: { createdAt: 'desc' },
     });
 
-    return submissions.map((s) => ({
-      id: s.id,
-      userId: s.userId,
-      fullLegalName: s.fullLegalName,
-      aadhaarNumber: s.aadhaarNumber,
-      panNumber: s.panNumber,
-      status: s.status,
-      rejectionReason: s.rejectionReason,
-      reviewedAt: s.reviewedAt,
-      createdAt: s.createdAt,
-      user: s.user,
-    }));
+    return Promise.all(
+      submissions.map(async (s) => ({
+        id: s.id,
+        userId: s.userId,
+        fullLegalName: s.fullLegalName,
+        aadhaarNumber: s.aadhaarNumber,
+        panNumber: s.panNumber,
+        aadhaarFrontUrl: await this.s3Adapter.getSignedUrl(s.aadhaarFrontUrl),
+        aadhaarBackUrl: await this.s3Adapter.getSignedUrl(s.aadhaarBackUrl),
+        panFrontUrl: await this.s3Adapter.getSignedUrl(s.panFrontUrl),
+        supportingDocUrl: s.supportingDocUrl
+          ? await this.s3Adapter.getSignedUrl(s.supportingDocUrl)
+          : null,
+        status: s.status,
+        rejectionReason: s.rejectionReason,
+        reviewedAt: s.reviewedAt,
+        createdAt: s.createdAt,
+        user: s.user,
+      })),
+    );
   }
 
   async getKycById(kycId: number) {
