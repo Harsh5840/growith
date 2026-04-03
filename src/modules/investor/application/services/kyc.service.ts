@@ -118,7 +118,7 @@ export class KycService {
     const kyc = await this.prisma.investorKyc.findUnique({ where: { userId } });
 
     if (!kyc) {
-      return { status: 'NOT_SUBMITTED' };
+      return { status: 'PENDING' };
     }
 
     return {
