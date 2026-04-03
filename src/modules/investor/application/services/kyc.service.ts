@@ -43,7 +43,7 @@ export class KycService {
       await this.prisma.investorKyc.delete({ where: { id: existingKyc.id } });
     }
 
-    if (existingKyc && existingKyc.status === 'PENDING') {
+    if (existingKyc && existingKyc.status === 'PENDING_APPROVAL') {
       throw new HttpError(400, 'KYC is already submitted and pending review');
     }
 
@@ -108,7 +108,7 @@ export class KycService {
     // Update user's kycStatus
     await this.prisma.investorAuthUser.update({
       where: { id: userId },
-      data: { kycStatus: 'PENDING' },
+      data: { kycStatus: 'PENDING_APPROVAL' },
     });
 
     return { id: kyc.id, status: kyc.status };

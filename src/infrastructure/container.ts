@@ -11,11 +11,15 @@ import { JwtTokenService } from '../shared/auth/jwt-token.service';
 import { createAuthenticate, createAuthenticateAdmin } from '../shared/auth/jwt-auth.guard';
 import { AuthController } from '../gateway/controllers/investor/auth.controller';
 import { KycController } from '../gateway/controllers/investor/kyc.controller';
+import { WalletController } from '../gateway/controllers/investor/wallet.controller';
 import { PrismaAdminAuthRepository } from '../modules/admin/infrastructure/prisma-admin-auth.repository';
 import { AdminAuthService } from '../modules/admin/application/services/admin-auth.service';
 import { AdminKycService } from '../modules/admin/application/services/admin-kyc.service';
+import { WalletService } from '../modules/investor/application/services/wallet.service';
+import { AdminWalletService } from '../modules/admin/application/services/admin-wallet.service';
 import { AdminAuthController } from '../gateway/controllers/admin/admin-auth.controller';
 import { AdminKycController } from '../gateway/controllers/admin/admin-kyc.controller';
+import { AdminWalletController } from '../gateway/controllers/admin/admin-wallet.controller';
 import { S3Adapter } from '../shared/storage/s3.adapter';
 
 export const createContainer = () => {
@@ -46,6 +50,8 @@ export const createContainer = () => {
   const s3Adapter = new S3Adapter();
   const kycService = new KycService(s3Adapter);
   const kycController = new KycController(kycService);
+  const walletService = new WalletService(s3Adapter);
+  const walletController = new WalletController(walletService);
 
   // --- Admin Dependencies ---
   const adminRepository = new PrismaAdminAuthRepository();
@@ -54,13 +60,17 @@ export const createContainer = () => {
 
   const adminKycService = new AdminKycService(s3Adapter);
   const adminKycController = new AdminKycController(adminKycService);
+  const adminWalletService = new AdminWalletService(s3Adapter);
+  const adminWalletController = new AdminWalletController(adminWalletService);
 
   return {
     authController,
     authenticate,
     kycController,
+    walletController,
     adminAuthController,
     authenticateAdmin,
     adminKycController,
+    adminWalletController,
   };
 };

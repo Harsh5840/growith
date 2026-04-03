@@ -81,4 +81,10 @@ export class S3Adapter {
     const timestamp = Date.now();
     return `kyc/${userId}/${documentType}-${side}-${timestamp}.${ext}`;
   }
+
+  static generateWalletPaymentProofKey(userId: number, originalName: string): string {
+    const ext = originalName.split('.').pop() || 'jpg';
+    const timestamp = Date.now();
+    return `wallet-payments/${userId}/payment-proof-${timestamp}.${ext}`;
+  }
 }
