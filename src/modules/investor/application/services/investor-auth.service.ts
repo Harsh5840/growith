@@ -249,6 +249,7 @@ export class InvestorAuthService implements InvestorAuthUseCasePort {
       fullName: user.fullName,
       profilePicture: user.profilePicture,
       emailVerified: user.emailVerified,
+      kycStatus: user.kycStatus,
     };
   }
 
@@ -425,6 +426,7 @@ export class InvestorAuthService implements InvestorAuthUseCasePort {
       fullName: string;
       profilePicture?: string;
       emailVerified: boolean;
+      kycStatus: string;
     },
     tokens: { accessToken: string; refreshToken: string },
   ): AuthResponse {
@@ -435,6 +437,7 @@ export class InvestorAuthService implements InvestorAuthUseCasePort {
         fullName: user.fullName,
         profilePicture: user.profilePicture,
         emailVerified: user.emailVerified,
+        kycStatus: user.kycStatus,
       },
       tokens,
       codeVerified: false,

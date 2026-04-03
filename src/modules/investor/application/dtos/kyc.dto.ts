@@ -21,7 +21,7 @@ export interface SubmitKycRequestDto {
 }
 
 export interface KycStatusResponseDto {
-  status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'NOT_SUBMITTED';
+  status: 'PENDING_APPROVAL' | 'APPROVED' | 'REJECTED' | 'NOT_SUBMITTED';
   rejectionReason?: string;
 }
 
